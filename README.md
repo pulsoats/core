@@ -1,55 +1,55 @@
 ## pulsoats-core
 
-A shared toolkit for exchange integrations, detectors, and WebSocket transport.
+pulsoats-core — ядро с общими компонентами для биржевых интеграций, детекторов и WebSocket-транспорта.
 
-### Layer Overview
+### Слои
 
-1. **domain/** — pure contracts and business entities.
-2. **exchanges/** — concrete exchange adapters (REST + WS).
-3. **transport/websocket/** — reusable stream/connection/router logic.
-4. **lib/** — cross-cutting helpers (csv, format, parse, error roots).
+1. **domain/** — чистые контракты и бизнес-сущности.
+2. **exchanges/** — конкретные адаптеры бирж (REST и WebSocket).
+3. **transport/websocket/** — переиспользуемая логика потоков, подключений и роутера.
+4. **lib/** — вспомогательные утилиты (CSV, форматирование, парсинг, корни ошибок).
 
-### Domain Layer
+### Domain
 
-| Package | Contents |
+| Пакет | Содержимое |
 | --- | --- |
-| `domain/market` | `Category`, `Interval`, `Spec`, `CandleSpec`. Intervals are `time.Duration` constants with JSON helpers. |
-| `domain/exchange` | Interface `API`: `Candles`, `StreamCandles(ctx, spec, confirmedOnly) (chan market.Candle, <-chan error, error)`, `FeeRate`, `InstrumentExists`. |
-| `domain/detect` | Registry for detectors (`detectors.Registry`). `Candle()` view enforces `DetectorKindCandle`. |
-| `domain/derrors` | Domain-only roots: `ErrNotFound`, `ErrInvalidArgument`, `ErrRequired`, `ErrAlreadyExists`, `ErrUnauthorized`. Use `lib/errorsx` for transport/internal failures. |
+| `domain/market` | `Category`, `Interval`, `Spec`, `CandleSpec`. Интервалы — константы `time.Duration` с JSON-хелперами. |
+| `domain/exchange` | Интерфейс `API`: `Candles`, `StreamCandles(ctx, spec, confirmedOnly) (chan market.Candle, <-chan error, error)`, `FeeRate`, `InstrumentExists`. |
+| `domain/detect` | Реестр детекторов (`detectors.Registry`). Представление `Candle()` гарантирует `DetectorKindCandle`. |
+| `domain/derrors` | Доменные корни ошибок: `ErrNotFound`, `ErrInvalidArgument`, `ErrRequired`, `ErrAlreadyExists`, `ErrUnauthorized`. Для транспортных и внутренних сбоев используйте `lib/errorsx`. |
 
-### Bybit Exchange
+### Биржа Bybit
 
-| Area | Highlights                                                                                                                                                                                                                                                                           |
-| --- |--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| REST (`exchanges/bybit/rest`) | `Candles` handles pagination / interval validation. `FeeRate`, `InstrumentExists` translate HTTP errors into domain errors.                                                                                                                                                          |
-| WebSocket (`exchanges/bybit/websocket`) | `StreamCandles` shares connections per category, builds topics `kline.<interval>.<symbol>`, returns data/error channels. `response.go` decodes frames into `router.StreamMsg`. `resolve.go` maps scope → endpoint. Connetions should be divided by scope (private/public/trade etc.) |
-| Client (`exchanges/bybit/client.go`) | Combines REST + WS to implement `domain/exchange.API`.                                                                                                                                                                                                                               |
+| Область | Ключевые моменты |
+| --- | --- |
+| REST (`exchanges/bybit/rest`) | `Candles` обрабатывает пагинацию и валидирует интервалы. `FeeRate`, `InstrumentExists` приводят HTTP-ошибки к доменным. |
+| WebSocket (`exchanges/bybit/websocket`) | `StreamCandles` шарит подключения по категориям, формирует темы `kline.<interval>.<symbol>` и возвращает каналы данных/ошибок. `response.go` декодирует фреймы в `router.StreamMsg`, `resolve.go` сопоставляет scope → endpoint. Делите подключения по scope (private/public/trade и т. д.). |
+| Клиент (`exchanges/bybit/client.go`) | Объединяет REST и WebSocket, чтобы реализовать `domain/exchange.API`. |
 
 ### Transport / WebSocket
 
-| Component | Description |
+| Компонент | Описание |
 | --- | --- |
-| `stream.go` | Low-level WebSocket manager (`github.com/coder/websocket`). Options: `WithAuth(func(ctx) (any, error))`, `WithDispatch`, `WithReconnect`, `WithOutBuf`, `WithPingEvery`. Auth function returns payload; `Stream` writes it via `wsjson`. |
-| `connect.go` | Dial → auth payload → `onReconnect` → reader pump → command loop (`CmdSendJSON`, `CmdClose`). |
-| `router/` | Tracks topics per connection: `Acquire`/`Release`, `OnReconnect`, `Dispatch`. `sendBatched` batches subscribe/unsubscribe with rate limits. `ports.go` defines `MsgBuilder`/`MsgDecoder` contracts and a light `Logger`. `StreamMsgKind` differentiates data vs ack frames. |
+| `stream.go` | Низкоуровневый менеджер WebSocket-подключений (`github.com/coder/websocket`). Опции: `WithAuth(func(ctx) (any, error))`, `WithDispatch`, `WithReconnect`, `WithOutBuf`, `WithPingEvery`. Auth-функция возвращает payload, `Stream` отправляет его через `wsjson`. |
+| `connect.go` | Dial → auth payload → `onReconnect` → reader loop → цикл команд (`CmdSendJSON`, `CmdClose`). |
+| `router/` | Отслеживает темы на соединение: `Acquire`/`Release`, `OnReconnect`, `Dispatch`. `sendBatched` группирует subscribe/unsubscribe с лимитами. В `ports.go` описаны контракты `MsgBuilder`/`MsgDecoder` и лёгкий `Logger`. `StreamMsgKind` различает данные и ack-фреймы. |
 
-### Lib Helpers
+### Lib
 
-| Package | Purpose |
-| --- | --- |
-| `lib/errorsx` | Technical roots: `ErrInternal`, `ErrClosed`, `ErrNotImplemented`. |
-| `lib/csv` | CSV encoders for candles/signals plus buffered writers (headers, buffer size, auto flush). |
-| `lib/logx` | Shared `Logger` interface plus a simple `NewSimpleLogger` implementation. External apps can adapt any engine (zerolog, slog, zap) to this interface and pass it into core components. |
-| `lib/format`, `lib/parse`, `lib/units` | Money/delta helpers (`Cents`, `PPM`, `ToCents`). |
+| Пакет | Назначение                                                                                                                                 |
+| --- |--------------------------------------------------------------------------------------------------------------------------------------------|
+| `lib/errorsx` | Технические ошибки: `ErrInternal`, `ErrClosed`, `ErrNotImplemented`.                                                                       |
+| `lib/csv` | CSV-энкодеры для свечей и сигналов плюс буферизированные писатели (заголовки, размер буфера, автофлаш).                                    |
+| `lib/logx` | Общий интерфейс `Logger` и простая реализация `NewSimpleLogger`. Внешние приложения могут адаптировать zerolog/slog/zap и передать в core. |
+| `lib/format`, `lib/parse`, `lib/units` | Хелперы для денег и дельт (`Cents`, `PPM`, `ToCents`).                                                                                     |
 
-### Extending the Core
+### Расширение ядра
 
-1. Add exchange-specific `MsgBuilder`, `MsgDecoder`, and topic helpers.
-2. Implement REST client following `domain/exchange.API`, wrapping domain/tech errors consistently.
-3. Build a WebSocket facade (e.g., `StreamOrderbook`) that reuses `stream.Stream` + `router`.
-4. Use `WithAuth` if the exchange requires a login handshake—return the JSON payload, let `Stream` send it.
+1. Добавьте биржевые `MsgBuilder`, `MsgDecoder` и утилиты для формирования тем.
+2. Реализуйте REST-клиент по контракту `domain/exchange.API`, единообразно мапя доменные и технические ошибки.
+3. Соберите WebSocket-фасад (например, `StreamOrderbook`), переиспользуя `stream.Stream` и `router`.
+4. Подключайте `WithAuth`, если биржа требует рукопожатие: верните JSON-payload, `Stream` отправит его сам.
 
-### Testing
+### Тесты
 
-Run `go test ./...` to cover csv utilities, router helpers, bybit decoders, etc., before pushing changes.
+Перед пушем запускайте `go test ./...`, чтобы покрыть CSV-утилиты, роутер, декодеры Bybit и другие пакеты.
