@@ -82,18 +82,18 @@ var WOptsSchema = json.RawMessage(`{
     },
     "BarsForBuy": {
       "type": "integer",
-      "minimum": 1
-	  "description": "Количество свечей для покупки"
+      "minimum": 1,
+      "description": "Количество свечей для покупки"
     },
     "BarsForSell": {
       "type": "integer",
-      "minimum": 1
+      "minimum": 1,
       "description": "Количество свечей для продажи"
     },
     "WindowSize": {
       "type": "integer",
-      "minimum": 5
-	  "description": "Размер окна"
+      "minimum": 5,
+      "description": "Размер окна"
     }
   },
   "additionalProperties": false
