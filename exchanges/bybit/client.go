@@ -34,6 +34,7 @@ var Metadata = exchange.Meta{
 	Code:       Code,
 	Intervals:  specs.ListIntervals(),
 	Categories: specs.ListCategories(),
+	PriceTypes: specs.ListPriceTypes(),
 }
 
 type Bybit struct {
