@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
-	"github.com/pulsoats/core/domain/derrors"
+	"github.com/pulsoats/core/errorsx"
 )
 
 type Stream struct {
@@ -31,7 +31,7 @@ type Stream struct {
 
 func NewStream(url string, cmds chan Command, opts ...StreamOption) (*Stream, error) {
 	if url == "" {
-		return nil, fmt.Errorf("%w: url is required", derrors.ErrRequired)
+		return nil, fmt.Errorf("websocket stream: url: %w", errorsx.ErrRequired)
 	}
 
 	c := &streamCfg{
@@ -52,7 +52,7 @@ func NewStream(url string, cmds chan Command, opts ...StreamOption) (*Stream, er
 
 	// --- Валидация обязательных полей ---
 	if cmds == nil {
-		return nil, fmt.Errorf("%w: Cmds channel is required", derrors.ErrRequired)
+		return nil, fmt.Errorf("websocket stream: cmds channel: %w", errorsx.ErrRequired)
 	}
 
 	if c.backoffMin <= 0 {

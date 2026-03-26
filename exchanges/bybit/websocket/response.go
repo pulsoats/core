@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pulsoats/core/domain/derrors"
+	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/transport/websocket/router"
 )
 
-var ErrUnknownFrame = fmt.Errorf("%w: bybit websocket frame is unknown", derrors.ErrInvalidArgument)
+var ErrUnknownFrame = fmt.Errorf("bybit websocket: frame is unknown: %w", errorsx.ErrInvalidArgument)
 
 type response struct {
 	// data

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pulsoats/core/domain/derrors"
+	"github.com/pulsoats/core/errorsx"
 )
 
 type authMsg struct {
@@ -19,7 +19,7 @@ type authMsg struct {
 
 func (w *Client) Auth(ctx context.Context) (any, error) {
 	if w.apiKey == "" || w.secret == "" {
-		return nil, fmt.Errorf("%w: api secret", derrors.ErrRequired)
+		return nil, fmt.Errorf("bybit websocket: auth api secret: %w", errorsx.ErrRequired)
 	}
 
 	expires := time.Now().UnixMilli() + 1000

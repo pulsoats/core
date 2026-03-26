@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/pulsoats/core/domain/derrors"
+	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/transport/websocket"
 )
 
@@ -26,13 +26,13 @@ type Router struct {
 // NewRouter — конструктор с дефолтами, валидацией и нормализацией.
 func NewRouter(deps Deps, opts ...Option) (*Router, error) {
 	if deps.Cmds == nil {
-		return nil, fmt.Errorf("%w: cmds is required", derrors.ErrRequired)
+		return nil, fmt.Errorf("websocket router: cmds channel: %w", errorsx.ErrRequired)
 	}
 	if deps.MsgBuilder == nil {
-		return nil, fmt.Errorf("%w: RequestBuilder is required", derrors.ErrRequired)
+		return nil, fmt.Errorf("websocket router: msg builder: %w", errorsx.ErrRequired)
 	}
 	if deps.MsgDecoder == nil {
-		return nil, fmt.Errorf("%w: MsgDecoder is required", derrors.ErrRequired)
+		return nil, fmt.Errorf("websocket router: msg decoder: %w", errorsx.ErrRequired)
 	}
 
 	c := &cfg{

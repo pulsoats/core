@@ -24,27 +24,27 @@ func EncodeSignal(sig detect.Signal) []string {
 		timeStr,
 
 		// деньги
-		format.FormatCents(sig.Value),
-		format.FormatCents(sig.BuyValue),
-		format.FormatCents(sig.TakeProfitValue),
-		format.FormatCents(sig.StopLossValue),
+		format.CentsToString(sig.Value),
+		format.CentsToString(sig.BuyValue),
+		format.CentsToString(sig.TakeProfitValue),
+		format.CentsToString(sig.StopLossValue),
 
 		// доля (не проценты и не ppm)
 		strconv.FormatFloat(profitability, 'f', -1, 64),
 	}
 }
 
-// EncodeCandle преобразует свечу домена в CSV-строку (время в RFC3339, цены в FormatCents).
+// EncodeCandle преобразует свечу домена в CSV-строку (время в RFC3339, цены в CentsToString).
 func EncodeCandle(candle market.Candle) []string {
 	candleTime := time.UnixMilli(candle.Time).UTC().Format(time.RFC3339)
 	volume := float64(candle.Volume) / float64(units.PPM)
 
 	return []string{
 		candleTime,
-		format.FormatCents(candle.Open),
-		format.FormatCents(candle.High),
-		format.FormatCents(candle.Low),
-		format.FormatCents(candle.Close),
+		format.CentsToString(candle.Open),
+		format.CentsToString(candle.High),
+		format.CentsToString(candle.Low),
+		format.CentsToString(candle.Close),
 		strconv.FormatFloat(volume, 'f', -1, 64),
 		strconv.FormatFloat(candle.Turnover, 'f', -1, 64),
 	}

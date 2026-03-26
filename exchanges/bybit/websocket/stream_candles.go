@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pulsoats/core/domain/derrors"
 	"github.com/pulsoats/core/domain/market"
+	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/exchanges/bybit/specs"
 	websocket3 "github.com/pulsoats/core/transport/websocket"
 	"github.com/pulsoats/core/transport/websocket/router"
@@ -23,7 +23,7 @@ func (w *Client) StreamCandles(ctx context.Context, spec market.CandleSpec, conf
 	)
 	iv, ok := specs.SupportedIntervals[spec.Interval]
 	if !ok {
-		return nil, nil, fmt.Errorf("%w: interval=%s", derrors.ErrInvalidArgument, spec.Interval)
+		return nil, nil, fmt.Errorf("bybit websocket: stream candles interval=%s: %w", spec.Interval, errorsx.ErrInvalidArgument)
 	}
 
 	url, err := resolveURL(scopePublic, spec.Category)
@@ -88,7 +88,7 @@ func (w *Client) StreamCandles(ctx context.Context, spec market.CandleSpec, conf
 
 	pipe, ok := pipes[topic]
 	if !ok {
-		return nil, nil, fmt.Errorf("%w: stream pipe not found for topic=%s", derrors.ErrNotFound, topic)
+		return nil, nil, fmt.Errorf("bybit websocket: stream candles pipe not found for topic=%s: %w", topic, errorsx.ErrNotFound)
 	}
 
 	out := make(chan market.Candle, 256)

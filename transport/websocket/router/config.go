@@ -3,7 +3,7 @@ package router
 import (
 	"fmt"
 
-	"github.com/pulsoats/core/domain/derrors"
+	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/transport/websocket"
 )
 
@@ -23,7 +23,7 @@ type cfg struct {
 func WithMsgDecoder(d MsgDecoder) Option {
 	return func(c *cfg) error {
 		if d == nil {
-			return fmt.Errorf("%w: MsgDecoder cannot be nil", derrors.ErrRequired)
+			return fmt.Errorf("websocket router: msg decoder: %w", errorsx.ErrRequired)
 		}
 		c.msgDecoder = d
 		return nil

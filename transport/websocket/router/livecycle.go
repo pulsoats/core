@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/pulsoats/core/domain/derrors"
+	"github.com/pulsoats/core/errorsx"
 )
 
 // The Acquire function subscribes (if no such topic is subscribed in WebSocket connection) to topics
@@ -18,7 +18,7 @@ func (r *Router) Acquire(ctx context.Context, topics []string) (map[string]chan 
 	for _, topic := range topics {
 		if topic == "" {
 			r.mu.Unlock()
-			return nil, fmt.Errorf("%w: topic is required", derrors.ErrRequired)
+			return nil, fmt.Errorf("websocket router: topic: %w", errorsx.ErrRequired)
 		}
 		if p, ok := r.pipes[topic]; ok {
 			p.ref++
@@ -53,7 +53,7 @@ func (r *Router) Release(ctx context.Context, topics []string) error {
 	for _, topic := range topics {
 		if topic == "" {
 			r.mu.Unlock()
-			return fmt.Errorf("%w: topic is required", derrors.ErrRequired)
+			return fmt.Errorf("websocket router: topic: %w", errorsx.ErrRequired)
 		}
 		if p, ok := r.pipes[topic]; ok {
 			p.ref--

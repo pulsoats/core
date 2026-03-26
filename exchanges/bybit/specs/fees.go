@@ -3,8 +3,8 @@ package specs
 import (
 	"fmt"
 
-	"github.com/pulsoats/core/domain/derrors"
 	"github.com/pulsoats/core/domain/market"
+	"github.com/pulsoats/core/errorsx"
 )
 
 func DefaultFees(category market.Category) (market.TakerMakerFees, error) {
@@ -14,6 +14,6 @@ func DefaultFees(category market.Category) (market.TakerMakerFees, error) {
 	case CategoryLinear:
 		return market.TakerMakerFees{TakerFeeRate: 200, MakerFeeRate: 550}, nil
 	default:
-		return market.TakerMakerFees{}, fmt.Errorf("%w: category %v", derrors.ErrNotFound, category)
+		return market.TakerMakerFees{}, fmt.Errorf("bybit specs: fees category=%v: %w", category, errorsx.ErrNotFound)
 	}
 }

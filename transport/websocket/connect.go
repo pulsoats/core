@@ -11,7 +11,7 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
-	"github.com/pulsoats/core/lib/errorsx"
+	"github.com/pulsoats/core/errorsx"
 )
 
 func (s *Stream) Connect(ctx context.Context) (chan json.RawMessage, error) {
@@ -169,7 +169,7 @@ func (s *Stream) Connect(ctx context.Context) (chan json.RawMessage, error) {
 								}
 								return e
 							default:
-								return fmt.Errorf("%w: reader stream", errorsx.ErrClosed)
+								return fmt.Errorf("websocket connect: reader stream: %w", errorsx.ErrClosed)
 							}
 						}
 

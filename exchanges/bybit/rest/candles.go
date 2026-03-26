@@ -3,7 +3,6 @@ package rest
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,10 +11,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pulsoats/core/domain/derrors"
 	"github.com/pulsoats/core/domain/market"
+	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/exchanges/bybit/specs"
-	"github.com/pulsoats/core/lib/errorsx"
 	"github.com/pulsoats/core/lib/parse"
 	"github.com/pulsoats/core/lib/units"
 )
@@ -34,21 +32,21 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 		r.client = http.DefaultClient
 	}
 	if !specs.IsSupportedCategory(spec.Category) {
-		return nil, fmt.Errorf("%w: category %v", derrors.ErrNotFound, spec.Category)
+		return nil, fmt.Errorf("bybit rest: candles category=%v: %w", spec.Category, errorsx.ErrNotFound)
 	}
 
 	intervalStr, ok := specs.SupportedIntervals[spec.Interval]
 	if !ok {
-		return nil, fmt.Errorf("%w: interval %v", derrors.ErrNotFound, spec.Interval)
+		return nil, fmt.Errorf("bybit rest: candles interval=%v: %w", spec.Interval, errorsx.ErrNotFound)
 	}
 
 	if !from.Before(to) {
-		return nil, fmt.Errorf("%w: from must be < to", derrors.ErrInvalidArgument)
+		return nil, fmt.Errorf("bybit rest: candles from must be < to: %w", errorsx.ErrInvalidArgument)
 	}
 
 	intervalDur := time.Duration(spec.Interval)
 	if intervalDur <= 0 {
-		return nil, fmt.Errorf("%w: invalid interval=%v", derrors.ErrInvalidArgument, spec.Interval)
+		return nil, fmt.Errorf("bybit rest: candles invalid interval=%v: %w", spec.Interval, errorsx.ErrInvalidArgument)
 	}
 
 	u, err := url.Parse(BybitV5URL)
@@ -122,7 +120,7 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 					"status", res.StatusCode,
 					"body", string(b),
 				)
-				err = fmt.Errorf("%w: bybit http=%d body=%s", errorsx.ErrInternal, res.StatusCode, string(b))
+				err = fmt.Errorf("bybit rest: candles http=%d body=%s: %w", res.StatusCode, string(b), errorsx.ErrInternal)
 				return
 			}
 
@@ -138,7 +136,7 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 
 		if resp.RetCode != 0 {
 			r.log.Warn("candles retCode", "code", resp.RetCode, "msg", resp.RetMsg)
-			return nil, fmt.Errorf("%w: bybit retCode=%d retMsg=%s", errorsx.ErrInternal, resp.RetCode, resp.RetMsg)
+			return nil, fmt.Errorf("bybit rest: candles retCode=%d retMsg=%s: %w", resp.RetCode, resp.RetMsg, errorsx.ErrInternal)
 		}
 
 		if len(resp.Result.List) == 0 {
@@ -194,14 +192,14 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 
 	if len(out) == 0 {
 		r.log.Warn("candles result empty", "symbol", spec.Symbol, "category", spec.Category)
-		return nil, errors.New("no candles received")
+		return nil, fmt.Errorf("bybit rest: candles not received: %w", errorsx.ErrNotFound)
 	}
 	return out, nil
 }
 
 func decodeCandle(rawCandle []string, priceType market.PriceType) (market.Candle, error) {
 	if len(rawCandle) < 5 {
-		return market.Candle{}, fmt.Errorf("%w: bybit candle len=%d want>=7", derrors.ErrInvalidArgument, len(rawCandle))
+		return market.Candle{}, fmt.Errorf("bybit rest: decode candle len=%d want>=7: %w", len(rawCandle), errorsx.ErrInvalidArgument)
 	}
 	ts, err := strconv.ParseInt(rawCandle[0], 10, 64)
 	if err != nil {

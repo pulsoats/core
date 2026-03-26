@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"context"
 	"encoding/csv"
-	"errors"
+	"fmt"
 	"io"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/pulsoats/core/errorsx"
 )
 
 const defaultBufferSize = 1 << 20
@@ -166,7 +168,7 @@ func (w *Writer[T]) Write(ctx context.Context, v T) error {
 	defer w.mu.Unlock()
 
 	if w.closed {
-		return errors.New("writer closed")
+		return fmt.Errorf("csv writer: writer: %w", errorsx.ErrClosed)
 	}
 	if w.err != nil {
 		return w.err
@@ -228,7 +230,7 @@ func (w *Writer[T]) Flush() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if w.closed {
-		return errors.New("writer closed")
+		return fmt.Errorf("csv writer: writer: %w", errorsx.ErrClosed)
 	}
 	return w.flushLocked()
 }
@@ -323,4 +325,4 @@ func (w *Writer[T]) recordErrorLocked(err error) {
 	}
 }
 
-var ErrNilEncoder = errors.New("csv: encoder is nil")
+var ErrNilEncoder = fmt.Errorf("csv writer: encoder: %w", errorsx.ErrRequired)

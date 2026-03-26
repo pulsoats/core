@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pulsoats/core/domain/derrors"
+	"github.com/pulsoats/core/errorsx"
 )
 
 const recvWindow = "5000"
@@ -25,7 +25,7 @@ func sign(apiKey, apiSecret, recvWindow, payloadSuffix string, timestampMs int64
 
 func setAuthHeaders(apiKey, apiSecret, payloadSuffix string, t time.Time, req *http.Request) error {
 	if t.IsZero() {
-		return fmt.Errorf("%w: timestamp is zero", derrors.ErrInvalidArgument)
+		return fmt.Errorf("bybit rest: auth timestamp is zero: %w", errorsx.ErrInvalidArgument)
 	}
 
 	tsMs := t.UnixMilli()

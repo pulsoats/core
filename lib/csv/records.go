@@ -12,7 +12,7 @@ import (
 
 // StructToCSVRecord берет значения из структуры v согласно csv-тегам.
 // Поддерживаемые модификаторы (после запятой):
-//   - price        : int64 в центах -> деньги (FormatCents)
+//   - price        : int64 в центах -> деньги (CentsToString)
 //   - ppm          : int64 в ppm    -> доля (0.xxxxxx)
 //   - time         : unix sec/ms    -> "2006-01-02 15:04:05" (UTC)
 //   - raw          : вывод как есть
@@ -71,7 +71,7 @@ func StructToCSVRecord(v any) []string {
 
 			case has(mods, "price"):
 				// денежные поля в центах
-				s = format.FormatCents(vi)
+				s = format.CentsToString(vi)
 
 			case has(mods, "ppm"):
 				// ppm -> доля (0.xxxxxx)

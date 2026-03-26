@@ -6,9 +6,9 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/pulsoats/core/domain/derrors"
 	"github.com/pulsoats/core/domain/exchange"
 	"github.com/pulsoats/core/domain/market"
+	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/exchanges/bybit"
 	"github.com/pulsoats/core/lib/logx"
 )
@@ -58,7 +58,7 @@ func (r *Registry) add(meta exchange.Meta, factory exchange.Factory) error {
 	defer r.mu.Unlock()
 
 	if _, exists := r.factories[meta.Code]; exists {
-		return fmt.Errorf("%w: exchange=%s", derrors.ErrAlreadyExists, meta.Code)
+		return fmt.Errorf("exchange registry: exchange=%s: %w", meta.Code, errorsx.ErrAlreadyExists)
 	}
 
 	r.factories[meta.Code] = factory

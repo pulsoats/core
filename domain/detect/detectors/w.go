@@ -7,10 +7,10 @@ import (
 	"math"
 
 	"github.com/google/uuid"
-	"github.com/pulsoats/core/domain/derrors"
 	"github.com/pulsoats/core/domain/detect"
 	"github.com/pulsoats/core/domain/identity"
 	"github.com/pulsoats/core/domain/market"
+	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/lib/units"
 )
 
@@ -153,13 +153,13 @@ func (w *WDetector) BarsForSell() int          { return w.opts.BarsForSell }
 // Validate проверяет корректность конфигурации детектора.
 func (o WOpts) Validate() error {
 	if o.WindowSize < 5 {
-		return fmt.Errorf("%w: window_size must be >= 7", derrors.ErrInvalidArgument)
+		return fmt.Errorf("detector W: window_size must be >= 7: %w", errorsx.ErrInvalidArgument)
 	}
 	if o.BarsForBuy <= 0 {
-		return fmt.Errorf("%w: bars_for_buy must be > 0", derrors.ErrInvalidArgument)
+		return fmt.Errorf("detector W: bars_for_buy must be > 0: %w", errorsx.ErrInvalidArgument)
 	}
 	if o.BarsForSell <= 0 {
-		return fmt.Errorf("%w: bars_for_sell must be > 0", derrors.ErrInvalidArgument)
+		return fmt.Errorf("detector W: bars_for_sell must be > 0: %w", errorsx.ErrInvalidArgument)
 	}
 	return nil
 }
