@@ -1,6 +1,6 @@
 package rest
 
-type candlesRespDTO struct {
+type candlesResponse struct {
 	RetCode int    `json:"retCode"`
 	RetMsg  string `json:"retMsg"`
 	Result  struct {
@@ -11,7 +11,7 @@ type candlesRespDTO struct {
 	Time       any `json:"time"`
 }
 
-type instrumentsRespDTO struct {
+type instrumentsResponse struct {
 	RetCode int    `json:"retCode"`
 	RetMsg  string `json:"retMsg"`
 	Result  struct {

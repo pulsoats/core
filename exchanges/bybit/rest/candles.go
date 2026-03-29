@@ -110,7 +110,7 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 		}
 
 		// НЕ defer в цикле — закрываем сразу
-		var resp candlesRespDTO
+		var resp candlesResponse
 		func() {
 			defer res.Body.Close()
 
@@ -135,8 +135,26 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 		}
 
 		if resp.RetCode != 0 {
-			r.log.Warn("candles retCode", "code", resp.RetCode, "msg", resp.RetMsg)
-			return nil, fmt.Errorf("bybit rest: candles retCode=%d retMsg=%s: %w", resp.RetCode, resp.RetMsg, errorsx.ErrInternal)
+			if resp.RetCode == 10006 {
+				rawResetTs := res.Header.Get("X-Bapi-Limit-Reset-Timestamp")
+				if rawResetTs == "" {
+					return nil, fmt.Errorf("bybit rest: candles: unexpected X-Bapi-Limit-Reset-Timestamp header value: %w", errorsx.ErrInternal)
+				}
+				resetTs, err := strconv.ParseInt(rawResetTs, 10, 64)
+				if err != nil {
+					return nil, fmt.Errorf("bybit rest: candles: unexpected X-Bapi-Limit-Reset-Timestamp header value: %w", errorsx.ErrInternal)
+				}
+
+				nowUnix := time.Now().UnixMilli()
+				if resetTs > nowUnix {
+					sleepTime := time.Duration(resetTs-nowUnix+100) * time.Millisecond
+					r.log.Debug(fmt.Sprintf("bybit rest: candles: exceeded rate limit: sleeping %s seconds", sleepTime/1000))
+					time.Sleep(sleepTime)
+				}
+			} else {
+				r.log.Warn("candles retCode", "code", resp.RetCode, "msg", resp.RetMsg)
+				return nil, fmt.Errorf("bybit rest: candles retCode=%d retMsg=%s: %w", resp.RetCode, resp.RetMsg, errorsx.ErrInternal)
+			}
 		}
 
 		if len(resp.Result.List) == 0 {
@@ -160,7 +178,6 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 			if c.Time < startMs || c.Time >= toMs {
 				continue
 			}
-			// дедуп на всякий случай
 			if c.Time == lastAppendedTs {
 				continue
 			}

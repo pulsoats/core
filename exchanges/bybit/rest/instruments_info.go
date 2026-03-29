@@ -49,7 +49,7 @@ func (r *Client) InstrumentExists(ctx context.Context, category market.Category,
 		return false, fmt.Errorf("unexpected status %d", res.StatusCode)
 	}
 
-	var resp instrumentsRespDTO
+	var resp instrumentsResponse
 	if err := json.NewDecoder(io.LimitReader(res.Body, 10<<20)).Decode(&resp); err != nil {
 		return false, fmt.Errorf("decode: %w", err)
 	}
