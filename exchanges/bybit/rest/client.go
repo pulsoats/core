@@ -1,10 +1,9 @@
 package rest
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
-
-	"github.com/pulsoats/core/lib/logx"
 )
 
 const BybitV5URL = "https://api.bybit.com"
@@ -15,7 +14,7 @@ type Client struct {
 	apiSecret  string
 	recvWindow string
 	baseURL    string
-	log        logx.Logger
+	log        *slog.Logger
 }
 
 type Option func(*Client)
@@ -29,18 +28,19 @@ func NewClient(key, secret string, timeout time.Duration, opts ...Option) *Clien
 		apiSecret:  secret,
 		recvWindow: "5000",
 		baseURL:    BybitV5URL,
-		log:        logx.Nop(),
+		log:        slog.New(slog.DiscardHandler),
 	}
 	for _, opt := range opts {
 		opt(c)
 	}
+	c.log = c.log.With("component", "bybit.rest")
 	return c
 }
 
-func WithLogger(l logx.Logger) Option {
+func WithLogger(l *slog.Logger) Option {
 	return func(c *Client) {
 		if l == nil {
-			l = logx.Nop()
+			l = slog.New(slog.DiscardHandler)
 		}
 		c.log = l
 	}

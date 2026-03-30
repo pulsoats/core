@@ -3,7 +3,6 @@ package rest
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -112,24 +111,35 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 
 		// НЕ defer в цикле — закрываем сразу
 		var resp candlesResponse
+		var rawBody []byte
 		func() {
 			defer res.Body.Close()
 
-			if res.StatusCode < 200 || res.StatusCode >= 300 {
-				b, _ := io.ReadAll(res.Body)
-				r.log.Warn("candles non-200 status",
-					"status", res.StatusCode,
-					"body", string(b),
-				)
-				err = fmt.Errorf("bybit rest: candles http=%d body=%s: %w", res.StatusCode, string(b), errorsx.ErrInternal)
+			rawBody, err = io.ReadAll(res.Body)
+			if err != nil {
+				err = fmt.Errorf("bybit rest: candles read body: %w", err)
 				return
 			}
 
-			if derr := json.NewDecoder(res.Body).Decode(&resp); derr != nil {
+			if res.StatusCode < 200 || res.StatusCode >= 300 {
+				r.log.Warn("candles non-200 status",
+					"status", res.StatusCode,
+					"headers", res.Header,
+					"body", string(rawBody),
+				)
+				err = fmt.Errorf("bybit rest: candles http=%d body=%s: %w", res.StatusCode, string(rawBody), errorsx.ErrInternal)
+				return
+			}
+
+			if derr := json.Unmarshal(rawBody, &resp); derr != nil {
+				r.log.Warn("candles decode failed",
+					"err", derr,
+					"headers", res.Header,
+					"body", string(rawBody),
+				)
 				err = derr
 				return
 			}
-			_, _ = io.Copy(io.Discard, res.Body)
 		}()
 		if err != nil {
 			return nil, err
@@ -137,26 +147,29 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 
 		if resp.RetCode != 0 {
 			if resp.RetCode == 10006 {
-				r.log.Debug("bybit rest: candles: retCode=10006: resp: %s", res)
+				r.log.Debug("bybit rest: candles: rate limit hit", "retCode", resp.RetCode, "msg", resp.RetMsg, "headers", res.Header, "body", string(rawBody))
 				rawResetTs := res.Header.Get("X-Bapi-Limit-Reset-Timestamp")
 				if rawResetTs == "" {
-					return nil, fmt.Errorf("bybit rest: candles: unexpected X-Bapi-Limit-Reset-Timestamp header value: %w", errors.Join(errorsx.ErrInternal, err))
+					return nil, fmt.Errorf("bybit rest: candles: missing X-Bapi-Limit-Reset-Timestamp header: %w", errorsx.ErrInternal)
 				}
 				resetTs, err := strconv.ParseInt(rawResetTs, 10, 64)
 				if err != nil {
-					return nil, fmt.Errorf("bybit rest: candles: unexpected X-Bapi-Limit-Reset-Timestamp header value: %w", errors.Join(errorsx.ErrInternal, err))
+					return nil, fmt.Errorf("bybit rest: candles: invalid X-Bapi-Limit-Reset-Timestamp=%q: %w", rawResetTs, errorsx.ErrInternal)
 				}
 
-				nowUnix := time.Now().UnixMilli()
-				if resetTs > nowUnix {
-					sleepTime := time.Duration(resetTs-nowUnix+100) * time.Millisecond
-					r.log.Debug(fmt.Sprintf("bybit rest: candles: exceeded rate limit: sleeping %s seconds", sleepTime/1000))
-					time.Sleep(sleepTime)
+				sleepTime := time.Duration(resetTs-time.Now().UnixMilli()+100) * time.Millisecond
+				if sleepTime > 0 {
+					r.log.Debug("bybit rest: candles: rate limit sleep", "duration", sleepTime.String())
+					select {
+					case <-time.After(sleepTime):
+					case <-ctx.Done():
+						return nil, ctx.Err()
+					}
 				}
-			} else {
-				r.log.Warn("candles retCode", "code", resp.RetCode, "msg", resp.RetMsg)
-				return nil, fmt.Errorf("bybit rest: candles retCode=%d retMsg=%s: %w", resp.RetCode, resp.RetMsg, errorsx.ErrInternal)
+				continue // retry the same start/end window
 			}
+			r.log.Warn("candles retCode", "code", resp.RetCode, "msg", resp.RetMsg, "headers", res.Header, "body", string(rawBody))
+			return nil, fmt.Errorf("bybit rest: candles retCode=%d retMsg=%s: %w", resp.RetCode, resp.RetMsg, errorsx.ErrInternal)
 		}
 
 		if len(resp.Result.List) == 0 {

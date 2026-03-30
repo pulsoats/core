@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/transport/websocket"
@@ -16,7 +17,7 @@ type cfg struct {
 	pipeBuf      int
 	topicsPerReq int
 	reqPerSec    int
-	logger       Logger
+	logger       *slog.Logger
 	maxPipeBuf   int
 }
 
@@ -45,10 +46,10 @@ func WithLimits(topicsPerReq, reqPerSec int) Option {
 	}
 }
 
-func WithLogger(l Logger) Option {
+func WithLogger(l *slog.Logger) Option {
 	return func(c *cfg) error {
 		if l == nil {
-			l = nopLogger{}
+			l = slog.New(slog.DiscardHandler)
 		}
 		c.logger = l
 		return nil

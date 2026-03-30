@@ -2,6 +2,7 @@ package bybit
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/pulsoats/core/domain/exchange"
@@ -9,7 +10,6 @@ import (
 	"github.com/pulsoats/core/exchanges/bybit/rest"
 	"github.com/pulsoats/core/exchanges/bybit/specs"
 	"github.com/pulsoats/core/exchanges/bybit/websocket"
-	"github.com/pulsoats/core/lib/logx"
 )
 
 const Code = "bybit"
@@ -40,7 +40,7 @@ var Metadata = exchange.Meta{
 type Bybit struct {
 	rest *rest.Client
 	ws   *websocket.Client
-	log  logx.Logger
+	log  *slog.Logger
 }
 
 func (b *Bybit) Code() string {
@@ -54,7 +54,7 @@ func (b *Bybit) Intervals() []market.Interval {
 type Option func(*Bybit)
 
 func NewBybitClient(apiKey, secret string, opts ...Option) *Bybit {
-	b := &Bybit{log: logx.Nop()}
+	b := &Bybit{log: slog.New(slog.DiscardHandler)}
 	for _, opt := range opts {
 		opt(b)
 	}
@@ -66,10 +66,10 @@ func NewBybitClient(apiKey, secret string, opts ...Option) *Bybit {
 	return b
 }
 
-func WithLogger(l logx.Logger) Option {
+func WithLogger(l *slog.Logger) Option {
 	return func(b *Bybit) {
 		if l == nil {
-			l = logx.Nop()
+			l = slog.New(slog.DiscardHandler)
 		}
 		b.log = l
 	}

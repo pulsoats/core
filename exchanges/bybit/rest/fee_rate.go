@@ -53,6 +53,12 @@ func (r *Client) FeeRate(ctx context.Context, category market.Category, symbol, 
 	}
 	u = u.JoinPath(bybitFeeRatePath)
 
+	r.log.Debug("rest fee-rate request",
+		"category", category,
+		"symbol", symbol,
+		"baseCoin", baseCoin,
+	)
+
 	q := url.Values{}
 	q.Set("category", string(category))
 

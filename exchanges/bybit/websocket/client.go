@@ -1,9 +1,9 @@
 package websocket
 
 import (
+	"log/slog"
 	"sync"
 
-	"github.com/pulsoats/core/lib/logx"
 	"github.com/pulsoats/core/transport/websocket"
 	"github.com/pulsoats/core/transport/websocket/router"
 )
@@ -13,7 +13,7 @@ type Client struct {
 	conns  map[string]*conn
 	apiKey string
 	secret string
-	log    logx.Logger
+	log    *slog.Logger
 }
 
 type conn struct {
@@ -29,18 +29,19 @@ func NewWebSocketClient(apiKey, secret string, opts ...Option) *Client {
 		conns:  make(map[string]*conn),
 		apiKey: apiKey,
 		secret: secret,
-		log:    logx.Nop(),
+		log:    slog.New(slog.DiscardHandler),
 	}
 	for _, opt := range opts {
 		opt(c)
 	}
+	c.log = c.log.With("component", "bybit.ws")
 	return c
 }
 
-func WithLogger(l logx.Logger) Option {
+func WithLogger(l *slog.Logger) Option {
 	return func(c *Client) {
 		if l == nil {
-			l = logx.Nop()
+			l = slog.New(slog.DiscardHandler)
 		}
 		c.log = l
 	}

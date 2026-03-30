@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 
 	"github.com/pulsoats/core/errorsx"
@@ -19,7 +20,7 @@ type Router struct {
 	pipeBuf      int
 	topicsPerReq int
 	reqPerSec    int
-	log          Logger
+	log          *slog.Logger
 	connected    bool
 }
 
@@ -39,7 +40,7 @@ func NewRouter(deps Deps, opts ...Option) (*Router, error) {
 		pipeBuf:      64,
 		topicsPerReq: 10,
 		reqPerSec:    10,
-		logger:       nopLogger{},
+		logger:       slog.New(slog.DiscardHandler),
 		maxPipeBuf:   1 << 20, // 1MB «мягкая» верхняя граница буфера
 	}
 
@@ -75,7 +76,7 @@ func NewRouter(deps Deps, opts ...Option) (*Router, error) {
 		pipeBuf:      c.pipeBuf,
 		topicsPerReq: c.topicsPerReq,
 		reqPerSec:    c.reqPerSec,
-		log:          c.logger,
+		log:          c.logger.With("component", "ws.router"),
 	}
 
 	return r, nil

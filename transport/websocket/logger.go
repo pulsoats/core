@@ -1,9 +1,5 @@
 package websocket
 
-import (
-	"github.com/pulsoats/core/lib/logx"
-)
+import "log/slog"
 
-type Logger = logx.Logger
-
-var nopLogger = logx.Nop()
+var nopLogger = slog.New(slog.DiscardHandler)

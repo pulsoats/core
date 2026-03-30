@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/coder/websocket"
@@ -26,7 +27,7 @@ type Stream struct {
 	backoffMax   time.Duration
 	pingEvery    time.Duration
 
-	log Logger
+	log *slog.Logger
 }
 
 func NewStream(url string, cmds chan Command, opts ...StreamOption) (*Stream, error) {
@@ -79,6 +80,6 @@ func NewStream(url string, cmds chan Command, opts ...StreamOption) (*Stream, er
 		backoffStart: c.backoffMin,
 		backoffMax:   c.backoffMax,
 		pingEvery:    c.pingEvery,
-		log:          c.logger,
+		log:          c.logger.With("component", "ws.stream"),
 	}, nil
 }

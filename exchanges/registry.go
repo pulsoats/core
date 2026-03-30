@@ -3,6 +3,7 @@ package exchanges
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"sync"
 
@@ -10,22 +11,21 @@ import (
 	"github.com/pulsoats/core/domain/market"
 	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/exchanges/bybit"
-	"github.com/pulsoats/core/lib/logx"
 )
 
 type Registry struct {
 	mu        sync.RWMutex
 	factories map[string]exchange.Factory
 	meta      map[string]exchange.Meta
-	logger    logx.Logger
+	logger    *slog.Logger
 }
 
 type Option func(registry *Registry)
 
-func WithLogger(logger logx.Logger) Option {
+func WithLogger(logger *slog.Logger) Option {
 	return func(r *Registry) {
 		if logger == nil {
-			logger = logx.Nop()
+			logger = slog.New(slog.DiscardHandler)
 		}
 		r.logger = logger
 	}
@@ -35,13 +35,15 @@ func NewRegistry(opts ...Option) *Registry {
 	r := &Registry{
 		factories: make(map[string]exchange.Factory),
 		meta:      make(map[string]exchange.Meta),
-		logger:    logx.Nop(),
+		logger:    slog.New(slog.DiscardHandler),
 	}
 	for _, opt := range opts {
 		opt(r)
 	}
+	childLogger := r.logger // children label themselves independently
+	r.logger = r.logger.With("component", "exchange.registry")
 	r.mustAdd(bybit.Metadata, func(apiKey, apiSecret string) (exchange.API, error) {
-		return bybit.NewBybitClient(apiKey, apiSecret, bybit.WithLogger(r.logger)), nil
+		return bybit.NewBybitClient(apiKey, apiSecret, bybit.WithLogger(childLogger)), nil
 	})
 	return r
 }
@@ -81,8 +83,10 @@ func (r *Registry) Create(code string, apiKey string, apiSecret string) (exchang
 	}
 	api, err := factory(apiKey, apiSecret)
 	if err != nil {
+		r.logger.Error("exchange factory failed", "code", code, "err", err)
 		return nil, errors.Join(exchange.ErrFactoryFailed, err)
 	}
+	r.logger.Debug("exchange created", "code", code)
 	return api, nil
 }
 

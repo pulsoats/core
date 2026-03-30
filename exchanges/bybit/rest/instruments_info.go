@@ -21,6 +21,8 @@ func (r *Client) InstrumentExists(ctx context.Context, category market.Category,
 
 	symbol = strings.ToUpper(symbol)
 
+	r.log.Debug("rest instruments-info request", "category", category, "symbol", symbol)
+
 	u, err := url.Parse(BybitV5URL)
 	if err != nil {
 		return false, fmt.Errorf("parse base url: %w", err)

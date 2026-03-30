@@ -3,6 +3,7 @@ package websocket
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	"github.com/coder/websocket"
@@ -21,7 +22,7 @@ type streamCfg struct {
 	backoffMin  time.Duration
 	backoffMax  time.Duration
 	pingEvery   time.Duration
-	logger      Logger
+	logger      *slog.Logger
 }
 
 func WithDialOptions(opt *websocket.DialOptions) StreamOption {
@@ -74,7 +75,7 @@ func WithPingEvery(d time.Duration) StreamOption {
 	}
 }
 
-func WithLogger(l Logger) StreamOption {
+func WithLogger(l *slog.Logger) StreamOption {
 	return func(c *streamCfg) error {
 		if l == nil {
 			l = nopLogger

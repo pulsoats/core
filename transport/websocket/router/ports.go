@@ -19,17 +19,3 @@ type MsgBuilder interface {
 type MsgDecoder interface {
 	Decode(raw json.RawMessage) (*StreamMsg, error)
 }
-
-// Лёгкий логгер, чтобы не тянуть slog/zap в домен.
-type Logger interface {
-	Debug(msg string, kv ...any)
-	Info(msg string, kv ...any)
-	Warn(msg string, kv ...any)
-	Error(msg string, kv ...any)
-}
-type nopLogger struct{}
-
-func (nopLogger) Debug(string, ...any) {}
-func (nopLogger) Info(string, ...any)  {}
-func (nopLogger) Warn(string, ...any)  {}
-func (nopLogger) Error(string, ...any) {}
