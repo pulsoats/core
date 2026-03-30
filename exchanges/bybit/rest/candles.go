@@ -148,16 +148,18 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 		if resp.RetCode != 0 {
 			if resp.RetCode == 10006 {
 				r.log.Debug("bybit rest: candles: rate limit hit", "retCode", resp.RetCode, "msg", resp.RetMsg, "headers", res.Header, "body", string(rawBody))
+				const fallbackSleep = time.Second
+				sleepTime := fallbackSleep
 				rawResetTs := res.Header.Get("X-Bapi-Limit-Reset-Timestamp")
-				if rawResetTs == "" {
-					return nil, fmt.Errorf("bybit rest: candles: missing X-Bapi-Limit-Reset-Timestamp header: %w", errorsx.ErrInternal)
+				if rawResetTs != "" {
+					resetTs, err := strconv.ParseInt(rawResetTs, 10, 64)
+					if err != nil {
+						return nil, fmt.Errorf("bybit rest: candles: invalid X-Bapi-Limit-Reset-Timestamp=%q: %w", rawResetTs, errorsx.ErrInternal)
+					}
+					if d := time.Duration(resetTs-time.Now().UnixMilli()+100) * time.Millisecond; d > 0 {
+						sleepTime = d
+					}
 				}
-				resetTs, err := strconv.ParseInt(rawResetTs, 10, 64)
-				if err != nil {
-					return nil, fmt.Errorf("bybit rest: candles: invalid X-Bapi-Limit-Reset-Timestamp=%q: %w", rawResetTs, errorsx.ErrInternal)
-				}
-
-				sleepTime := time.Duration(resetTs-time.Now().UnixMilli()+100) * time.Millisecond
 				if sleepTime > 0 {
 					r.log.Debug("bybit rest: candles: rate limit sleep", "duration", sleepTime.String())
 					select {
