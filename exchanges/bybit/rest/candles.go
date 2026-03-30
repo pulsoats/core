@@ -3,6 +3,7 @@ package rest
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -136,13 +137,14 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 
 		if resp.RetCode != 0 {
 			if resp.RetCode == 10006 {
+				r.log.Debug("bybit rest: candles: retCode=10006: resp: %s", res)
 				rawResetTs := res.Header.Get("X-Bapi-Limit-Reset-Timestamp")
 				if rawResetTs == "" {
-					return nil, fmt.Errorf("bybit rest: candles: unexpected X-Bapi-Limit-Reset-Timestamp header value: %w", errorsx.ErrInternal)
+					return nil, fmt.Errorf("bybit rest: candles: unexpected X-Bapi-Limit-Reset-Timestamp header value: %w", errors.Join(errorsx.ErrInternal, err))
 				}
 				resetTs, err := strconv.ParseInt(rawResetTs, 10, 64)
 				if err != nil {
-					return nil, fmt.Errorf("bybit rest: candles: unexpected X-Bapi-Limit-Reset-Timestamp header value: %w", errorsx.ErrInternal)
+					return nil, fmt.Errorf("bybit rest: candles: unexpected X-Bapi-Limit-Reset-Timestamp header value: %w", errors.Join(errorsx.ErrInternal, err))
 				}
 
 				nowUnix := time.Now().UnixMilli()

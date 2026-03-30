@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/pulsoats/core/domain/detect"
+	"github.com/pulsoats/core/domain/detect/detectors/w"
 	"github.com/pulsoats/core/errorsx"
 )
 
@@ -44,7 +45,7 @@ func NewDefaultRegistry() *Registry {
 }
 
 func registerBuiltins(r *Registry) error {
-	return registerCandleDetector(r, "W", WDescription, WOptsSchema, NewWDetector)
+	return registerCandleDetector(r, w.Meta, w.NewWDetector)
 }
 
 func (r *Registry) registerMeta(meta detect.DetectorMeta, optType reflect.Type, factory Factory) error {
@@ -73,34 +74,24 @@ func (r *Registry) registerMeta(meta detect.DetectorMeta, optType reflect.Type, 
 
 func registerDetector[Opts any, Det detect.Detector](
 	r *Registry,
-	kind detect.DetectorKind,
-	code string,
-	desc string,
-	optsSchema json.RawMessage,
+	meta detect.DetectorMeta,
 	factory func(label string, opts Opts) (Det, error),
 ) error {
 	var zero Opts
 	t := reflect.TypeOf(zero)
 
-	meta := detect.DetectorMeta{
-		Code:       code,
-		Desc:       desc,
-		OptsSchema: optsSchema,
-		Kind:       kind,
-	}
-
 	return r.registerMeta(meta, t, func(label string, opts any) (detect.Detector, error) {
 		o, ok := opts.(Opts)
 		if !ok {
 			return nil, fmt.Errorf("detectors registry: detector=%s got=%T want=%s: %w",
-				code, opts, t.String(), errorsx.ErrInvalidArgument,
+				meta.Code, opts, t.String(), errorsx.ErrInvalidArgument,
 			)
 		}
 
 		det, err := factory(label, o)
 		if err != nil {
 			return nil, errors.Join(
-				fmt.Errorf("detectors registry: detector=%s factory failed: %w", code, errorsx.ErrInternal),
+				fmt.Errorf("detectors registry: detector=%s factory failed: %w", meta.Code, errorsx.ErrInternal),
 				err,
 			)
 		}
@@ -108,13 +99,11 @@ func registerDetector[Opts any, Det detect.Detector](
 	})
 }
 
-func registerCandleDetector[Opts any](
-	r *Registry,
-	code, desc string,
-	optsSchema json.RawMessage,
-	factory func(label string, opts Opts) (detect.CandleDetector, error),
-) error {
-	return registerDetector(r, detect.DetectorKindCandle, code, desc, optsSchema, factory)
+func registerCandleDetector[Opts any](r *Registry, meta detect.DetectorMeta, factory func(label string, opts Opts) (detect.CandleDetector, error)) error {
+	if meta.Kind != detect.DetectorKindCandle {
+		return fmt.Errorf("register Candle Detector: unexpected detector kind: %w", errorsx.ErrInternal)
+	}
+	return registerDetector(r, meta, factory)
 }
 
 func (r *Registry) ensureKind(name string, kind detect.DetectorKind) (detect.DetectorMeta, error) {

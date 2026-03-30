@@ -1,8 +1,7 @@
-package detectors
+package w
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 
@@ -10,171 +9,20 @@ import (
 	"github.com/pulsoats/core/domain/detect"
 	"github.com/pulsoats/core/domain/identity"
 	"github.com/pulsoats/core/domain/market"
-	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/lib/units"
 )
 
-const WDescription = `Детектор паттерна "Двойное дно" (W)
-
-Описание опций:
-LocalMinsDeviation - девиация между левым и правым локальными минимумами, PPM
-MinMaxDeviation - девиация между левым локальным минимумом и локальным максимумом, PPM
-TakeProfitRatio - коэффициент для цены TakeProfit, PPM
-StopLossRatio - коэффициент для цены StopLoss, PPM
-BarsForBuy - кол-во свечей, в течении которых должен исполнится ордер на покупку, натуральное
-BarsForSell - кол-во свечей, в течении которых должен исполнится ордер на продажу (по TP/SL), натуральное
-WindowSize - размер окна, натуральное >= 4
-`
-
-const WOptsSample = `{
-  "LocalMinsDeviation": 800,
-  "MinMaxDeviation": 1500,
-  "TakeProfitRatio": 178000,
-  "VolumeSpikeMultiplier": 2200000,
-  "VolumeCVThreshold": 1100000,
-  "StopLossRatio": 36000,
-  "BarsForBuy": 2,
-  "BarsForSell": 6,
-  "WindowSize": 8
-}`
-
-var WOptsSchema = json.RawMessage(`{
-  "type": "object",
-  "required": [
-    "LocalMinsDeviation",
-    "MinMaxDeviation",
-    "TakeProfitRatio",
-    "VolumeSpikeMultiplier",
-    "VolumeCVThreshold",
-    "StopLossRatio",
-    "BarsForBuy",
-    "BarsForSell",
-    "WindowSize"
-  ],
-  "properties": {
-    "LocalMinsDeviation": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "PPM допустимого отличия между минимумами"
-    },
-    "MinMaxDeviation": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "PPM амплитуды между минимумом и максимумом"
-    },
-    "TakeProfitRatio": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "PPM множитель цены take-profit"
-    },
-    "VolumeSpikeMultiplier": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "VolumeCVThreshold": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "StopLossRatio": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "PPM множитель цены stop-loss"
-    },
-    "BarsForBuy": {
-      "type": "integer",
-      "minimum": 1,
-      "description": "Количество свечей для покупки"
-    },
-    "BarsForSell": {
-      "type": "integer",
-      "minimum": 1,
-      "description": "Количество свечей для продажи"
-    },
-    "WindowSize": {
-      "type": "integer",
-      "minimum": 5,
-      "description": "Размер окна"
-    }
-  },
-  "additionalProperties": false
-}`)
-
-// WOpts - опции для W-детектора
-type WOpts struct {
-	LocalMinsDeviation    int64
-	MinMaxDeviation       int64
-	VolumeSpikeMultiplier int64
-	VolumeCVThreshold     int64
-	TakeProfitRatio       int64
-	StopLossRatio         int64
-	BarsForBuy            int
-	BarsForSell           int
-	WindowSize            int
-}
-
-type WDetector struct {
-	label string
-	opts  WOpts
-}
-
-// NewWDetector конструирует валидный W-детектор.
-func NewWDetector(label string, opts WOpts) (detect.CandleDetector, error) {
-	if err := opts.Validate(); err != nil {
-		return &WDetector{}, err
-	}
-
-	if label == "" {
-		label = fmt.Sprintf("%v|%v|%v|%v|%v|%v|%v|%v|%v",
-			opts.LocalMinsDeviation,
-			opts.MinMaxDeviation,
-			opts.VolumeSpikeMultiplier,
-			opts.VolumeCVThreshold,
-			opts.TakeProfitRatio,
-			opts.StopLossRatio,
-			opts.BarsForBuy,
-			opts.BarsForSell,
-			opts.WindowSize,
-		)
-	}
-	return &WDetector{label: label, opts: opts}, nil
-}
-
-func (w *WDetector) Code() string { return "W" }
-
-func (w *WDetector) Label() string {
-	return w.label
-}
-
-func (w *WDetector) Kind() detect.DetectorKind { return detect.DetectorKindCandle }
-func (w *WDetector) WindowSize() int           { return w.opts.WindowSize }
-func (w *WDetector) BarsForBuy() int           { return w.opts.BarsForBuy }
-func (w *WDetector) BarsForSell() int          { return w.opts.BarsForSell }
-
-// Validate проверяет корректность конфигурации детектора.
-func (o WOpts) Validate() error {
-	if o.WindowSize < 5 {
-		return fmt.Errorf("detector W: window_size must be >= 7: %w", errorsx.ErrInvalidArgument)
-	}
-	if o.BarsForBuy <= 0 {
-		return fmt.Errorf("detector W: bars_for_buy must be > 0: %w", errorsx.ErrInvalidArgument)
-	}
-	if o.BarsForSell <= 0 {
-		return fmt.Errorf("detector W: bars_for_sell must be > 0: %w", errorsx.ErrInvalidArgument)
-	}
-	return nil
-}
-
 // Detect - поиск паттерна в переданном окне, возвращает сигнал при успешном поиске.
-// Сигнал эмитится по последней свече окна (то, что видит бот в лайве).
+// Сигнал выставляется по последней свече окна.
 // "Не пробила бай" — по High.
-func (w *WDetector) Detect(ctx context.Context, window []market.Candle, fees market.TakerMakerFees) (detect.Signal, bool, error) {
+func (d *Detector) Detect(ctx context.Context, window []market.Candle, fees market.TakerMakerFees) (detect.Signal, bool, error) {
 	var zero detect.Signal
 
 	if err := ctx.Err(); err != nil {
 		return zero, false, err
 	}
 
-	opts := w.opts
+	opts := d.opts
 
 	minsIdxs, err := findLocalMins(ctx, window)
 	if err != nil {
@@ -319,7 +167,7 @@ func (w *WDetector) Detect(ctx context.Context, window []market.Candle, fees mar
 	// slValue := lowestMinVal * opts.StopLossRatio/units.PPM
 	slValue := lowestMinVal - (leftMaxVal-maxVal)*opts.StopLossRatio/units.PPM
 
-	// Сигнал эмитим на последней свече окна (лайв-точка)
+	// Сигнал выставляем на последней свече окна (лайв-точка)
 	lastIdx := len(window) - 1
 
 	id, _ := uuid.NewV7()
@@ -329,14 +177,14 @@ func (w *WDetector) Detect(ctx context.Context, window []market.Candle, fees mar
 	return detect.Signal{
 		ID:              id,
 		Status:          "NEW",
-		Detector:        w.Code(),
+		Detector:        d.Code(),
 		Time:            window[lastIdx].Time,
 		Value:           window[lastIdx].Close, // сигнал по текущей (последней) свече окна
 		BuyValue:        maxVal,
 		TakeProfitValue: tpValue,
 		StopLossValue:   slValue,
 		Extremes:        extremes,
-		Fingerprint:     identity.MakeFingerprint(fmt.Sprintf("%s|%s|%v", w.Code(), w.label, window[maxIndex].Time)),
+		Fingerprint:     identity.MakeFingerprint(fmt.Sprintf("%s|%s|%v", d.Code(), d.label, window[maxIndex].Time)),
 	}, true, nil
 }
 

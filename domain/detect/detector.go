@@ -47,4 +47,5 @@ type DetectorMeta struct {
 	Desc       string
 	Kind       DetectorKind
 	OptsSchema json.RawMessage
+	Version    string
 }
