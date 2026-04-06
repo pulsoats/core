@@ -176,7 +176,6 @@ func (d *Detector) Detect(ctx context.Context, window []market.Candle, fees mark
 
 	return detect.Signal{
 		ID:              id,
-		Status:          "NEW",
 		Detector:        d.Code(),
 		Time:            window[lastIdx].Time,
 		Value:           window[lastIdx].Close, // сигнал по текущей (последней) свече окна

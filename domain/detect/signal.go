@@ -8,7 +8,6 @@ import (
 type Signal struct {
 	ID                uuid.UUID
 	RunID             uuid.UUID
-	Status            string
 	Detector          string
 	OptsLabel         string
 	Time              int64
