@@ -19,7 +19,6 @@ func EncodeSignal(sig detect.Signal) []string {
 
 	return []string{
 		sig.ID.String(),
-		sig.Status,
 		sig.Detector,
 		timeStr,
 
