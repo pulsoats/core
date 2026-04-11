@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -40,7 +41,7 @@ func derefString(ptr *string) string {
 	return *ptr
 }
 
-func (bybitMsgDecoder) Decode(raw json.RawMessage) (*router.StreamMsg, error) {
+func (bybitMsgDecoder) Decode(_ context.Context, raw json.RawMessage) (*router.StreamMsg, error) {
 	var msg response
 
 	if err := json.Unmarshal(raw, &msg); err != nil {

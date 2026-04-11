@@ -9,30 +9,49 @@ import (
 )
 
 // The Acquire function subscribes (if no such topic is subscribed in WebSocket connection) to topics
-// and returns map json.RawMessage channels by topic.
-func (r *Router) Acquire(ctx context.Context, topics []string) (map[string]chan json.RawMessage, error) {
-	out := make(map[string]chan json.RawMessage, len(topics))
-	newTopics := make([]string, 0, len(topics))
-
+// and returns map json.RawMessage channels by topic. Each call gets its own channel (fan-out).
+// Returns ErrCapacityExceeded if MaxTopics is set and adding new topics would exceed the limit.
+func (r *Router) Subscribe(ctx context.Context, topics []string) (map[string]chan json.RawMessage, error) {
 	r.mu.Lock()
+
+	// First pass: count genuinely new topics and validate.
+	newCount := 0
 	for _, topic := range topics {
 		if topic == "" {
 			r.mu.Unlock()
-			return nil, fmt.Errorf("websocket router: topic: %w", errorsx.ErrRequired)
+			return nil, fmt.Errorf("Subscribe: topic: %w", errorsx.ErrRequired)
 		}
-		if p, ok := r.pipes[topic]; ok {
-			p.ref++
-			out[topic] = p.ch
-			continue
+		if _, ok := r.pipes[topic]; !ok {
+			newCount++
 		}
-		buf := r.pipeBuf
-		if buf < 1 {
-			buf = 1
-		}
+	}
+
+	// Capacity check: only new topics consume a slot.
+	if r.maxTopics > 0 && len(r.pipes)+newCount > r.maxTopics {
+		r.mu.Unlock()
+		return nil, fmt.Errorf("Subscribe: max topics %d reached (%d+%d): %w",
+			r.maxTopics, len(r.pipes), newCount, errorsx.ErrCapacityExceeded)
+	}
+
+	// Second pass: create channels and update pipes.
+	out := make(map[string]chan json.RawMessage, len(topics))
+	newTopics := make([]string, 0, newCount)
+	buf := r.pipeBuf
+	if buf < 1 {
+		buf = 1
+	}
+	for _, topic := range topics {
 		ch := make(chan json.RawMessage, buf)
-		r.pipes[topic] = &pipe{topic: topic, ch: ch, ref: 1}
+		if p, ok := r.pipes[topic]; ok {
+			p.subs[ch] = struct{}{}
+		} else {
+			r.pipes[topic] = &pipe{
+				topic: topic,
+				subs:  map[chan json.RawMessage]struct{}{ch: {}},
+			}
+			newTopics = append(newTopics, topic)
+		}
 		out[topic] = ch
-		newTopics = append(newTopics, topic)
 	}
 	r.mu.Unlock()
 
@@ -44,30 +63,35 @@ func (r *Router) Acquire(ctx context.Context, topics []string) (map[string]chan 
 	return out, nil
 }
 
-// The Release function unsubscribes from provided topic strings.
-func (r *Router) Release(ctx context.Context, topics []string) error {
-	unsubTopics := make([]string, 0, len(topics))
-	var toClose []*pipe
+// The Release function unsubscribes the specific channels returned by Subscribe.
+// When the last subscriber for a topic is removed, the WebSocket unsubscribe is sent.
+func (r *Router) Unsubscribe(ctx context.Context, subs map[string]chan json.RawMessage) error {
+	unsubTopics := make([]string, 0, len(subs))
+	var toClose []chan json.RawMessage
 
 	r.mu.Lock()
-	for _, topic := range topics {
+	for topic, ch := range subs {
 		if topic == "" {
 			r.mu.Unlock()
-			return fmt.Errorf("websocket router: topic: %w", errorsx.ErrRequired)
+			return fmt.Errorf("Unsubscribe: topic: %w", errorsx.ErrRequired)
 		}
-		if p, ok := r.pipes[topic]; ok {
-			p.ref--
-			if p.ref == 0 {
-				delete(r.pipes, topic)
-				unsubTopics = append(unsubTopics, topic)
-				toClose = append(toClose, p)
-			}
+		p, ok := r.pipes[topic]
+		if !ok {
+			continue
+		}
+		if _, exists := p.subs[ch]; exists {
+			delete(p.subs, ch)
+			toClose = append(toClose, ch)
+		}
+		if len(p.subs) == 0 {
+			delete(r.pipes, topic)
+			unsubTopics = append(unsubTopics, topic)
 		}
 	}
 	r.mu.Unlock()
 
-	for _, p := range toClose {
-		p.closeOnce()
+	for _, ch := range toClose {
+		close(ch)
 	}
 
 	if len(unsubTopics) == 0 {
@@ -87,10 +111,24 @@ func (r *Router) OnReconnect(ctx context.Context) error {
 	if !r.connected {
 		r.connected = true
 	}
+	r.state = ConnStateConnected
+
+	// Snapshot topics already covered by in-flight pending requests (raced Subscribe calls
+	// that arrived on the new connection before OnReconnect was called).
+	inPending := make(map[string]struct{})
+	for _, req := range r.pending {
+		for _, t := range req.topics {
+			inPending[t] = struct{}{}
+		}
+	}
+	// Stale pending reqs from the old connection are now invalid; reset.
 	r.pending = make(map[string]*pendingReq)
+
 	restartTopics := make([]string, 0, len(r.pipes))
 	for _, p := range r.pipes {
-		restartTopics = append(restartTopics, p.topic)
+		if _, skip := inPending[p.topic]; !skip {
+			restartTopics = append(restartTopics, p.topic)
+		}
 	}
 	r.mu.Unlock()
 

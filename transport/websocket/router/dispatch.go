@@ -8,7 +8,7 @@ import (
 
 // The Dispatch is routing message to pipe by topic
 func (r *Router) Dispatch(ctx context.Context, raw json.RawMessage) error {
-	msg, err := r.msgDecoder.Decode(raw)
+	msg, err := r.msgDecoder.Decode(ctx, raw)
 	if err != nil {
 		return err
 	}
@@ -24,13 +24,12 @@ func (r *Router) Dispatch(ctx context.Context, raw json.RawMessage) error {
 			r.mu.RUnlock()
 			return nil
 		}
-		select {
-		case <-ctx.Done():
-			r.mu.RUnlock()
-			return ctx.Err()
-		case p.ch <- raw:
-		default:
-			r.log.Warn("pipe channel full, dropping message", "topic", msg.Topic)
+		for ch := range p.subs {
+			select {
+			case ch <- raw:
+			default:
+				r.log.Warn("pipe channel full, dropping message", "topic", msg.Topic)
+			}
 		}
 		r.mu.RUnlock()
 		return nil

@@ -2,7 +2,6 @@ package router
 
 import (
 	"encoding/json"
-	"sync"
 	"time"
 )
 
@@ -13,12 +12,18 @@ const (
 	OpUnsubscribe Op = "unsubscribe"
 )
 
+// ConnState describes the current connection state of the Router.
+type ConnState int
+
+const (
+	ConnStateDisconnected ConnState = iota
+	ConnStateConnecting
+	ConnStateConnected
+)
+
 type pipe struct {
 	topic string
-	ch    chan json.RawMessage
-	ref   int
-
-	once sync.Once
+	subs  map[chan json.RawMessage]struct{}
 }
 
 type pendingReq struct {

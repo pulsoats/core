@@ -19,7 +19,7 @@ func TestRouter_removeTopics(t *testing.T) {
 		chans := make(map[string]chan json.RawMessage, len(topics))
 		for _, tp := range topics {
 			ch := make(chan json.RawMessage, 1)
-			pipes[tp] = &pipe{topic: tp, ch: ch}
+			pipes[tp] = &pipe{topic: tp, subs: map[chan json.RawMessage]struct{}{ch: {}}}
 			chans[tp] = ch
 		}
 		return &Router{pipes: pipes}, fixture{all: chans}

@@ -8,8 +8,40 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/transport/websocket"
 )
+
+// StartCleaner runs a background goroutine that evicts pending requests older than pendingTTL.
+// It stops when ctx is cancelled. No-op when pendingTTL is zero.
+func (r *Router) StartCleaner(ctx context.Context) {
+	if r.pendingTTL <= 0 {
+		return
+	}
+	interval := r.pendingTTL / 2
+	if interval <= 0 {
+		interval = r.pendingTTL
+	}
+	go func() {
+		t := time.NewTicker(interval)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case now := <-t.C:
+				r.mu.Lock()
+				for id, req := range r.pending {
+					if now.Sub(req.sentAt) >= r.pendingTTL {
+						r.log.Warn("pending request expired, evicting", "req_id", id, "op", req.op, "topics", req.topics, "age", now.Sub(req.sentAt))
+						delete(r.pending, id)
+					}
+				}
+				r.mu.Unlock()
+			}
+		}
+	}()
+}
 
 func (r *Router) removeTopics(topics []string) {
 	r.mu.Lock()
@@ -17,13 +49,11 @@ func (r *Router) removeTopics(topics []string) {
 	for _, t := range topics {
 		if p, ok := r.pipes[t]; ok {
 			delete(r.pipes, t)
-			close(p.ch)
+			for ch := range p.subs {
+				close(ch)
+			}
 		}
 	}
-}
-
-func (p *pipe) closeOnce() {
-	p.once.Do(func() { close(p.ch) })
 }
 
 func chunkStrings(xs []string, size int) [][]string {
@@ -55,7 +85,7 @@ func (r *Router) sendBatched(ctx context.Context, op Op, allTopics []string) err
 	batches := chunkStrings(allTopics, r.topicsPerReq)
 
 	var tick *time.Ticker
-	if r.reqPerSec > 0 {
+	if r.reqPerSec > 0 && len(batches) > 1 {
 		tick = time.NewTicker(time.Second)
 		defer tick.Stop()
 	}
@@ -93,7 +123,7 @@ func (r *Router) sendBatched(ctx context.Context, op Op, allTopics []string) err
 
 		// Bybit ограничивает длину req_id 32 символами, поэтому убираем дефисы UUID.
 		reqID := strings.ReplaceAll(uuid.New().String(), "-", "")
-		req, err := r.msgBuilder.Build(reqID, op, topics)
+		req, err := r.msgBuilder.Build(ctx, reqID, op, topics)
 		if err != nil {
 			r.log.Error("build batched request failed", "op", op, "err", err)
 			errs = append(errs, err)
@@ -117,7 +147,7 @@ func (r *Router) sendBatched(ctx context.Context, op Op, allTopics []string) err
 				sent = true
 			case <-t.C:
 				r.log.Warn("cmds channel full, dropping batched request", "op", op, "req_id", reqID)
-				errs = append(errs, fmt.Errorf("cmds full for %s %s", op, reqID))
+				errs = append(errs, fmt.Errorf("sendBatched: cmds full op=%s req=%s: %w", op, reqID, errorsx.ErrInternal))
 			}
 			t.Stop()
 		}

@@ -12,74 +12,59 @@ import (
 )
 
 type Stream struct {
-	url         string
+	url         string // websocket url
 	dialOptions *websocket.DialOptions
-	cmds        chan Command
+	cmds        chan Command // канал команд
 
-	auth       func(ctx context.Context) (any, error)
-	clientPing func(ctx context.Context, c *websocket.Conn) error
-
-	dispatch    func(ctx context.Context, raw json.RawMessage) error
+	auth        func(ctx context.Context) (any, error)               // Функция авторизации: должна реализовать биржа
+	dispatch    func(ctx context.Context, raw json.RawMessage) error // Функция
 	onReconnect func(ctx context.Context) error
-	outBuf      int
 
+	outBuf       int
 	backoffStart time.Duration
 	backoffMax   time.Duration
 	pingEvery    time.Duration
+	pingMsg      any
 
 	log *slog.Logger
 }
 
-func NewStream(url string, cmds chan Command, opts ...StreamOption) (*Stream, error) {
-	if url == "" {
-		return nil, fmt.Errorf("websocket stream: url: %w", errorsx.ErrRequired)
+func NewStream(cfg StreamConfig) (*Stream, error) {
+	if cfg.URL == "" {
+		return nil, fmt.Errorf("NewStream: url: %w", errorsx.ErrRequired)
+	}
+	if cfg.Cmds == nil {
+		return nil, fmt.Errorf("NewStream: cmds: %w", errorsx.ErrRequired)
 	}
 
-	c := &streamCfg{
-		backoffMin: time.Second,
-		backoffMax: 30 * time.Second,
-		outBuf:     256,
-		pingEvery:  0,
-		logger:     nopLogger,
+	if cfg.BackoffStart <= 0 {
+		cfg.BackoffStart = time.Second
 	}
-
-	for _, opt := range opts {
-		if err := opt(c); err != nil {
-			return nil, err
-		}
+	if cfg.BackoffMax <= 0 {
+		cfg.BackoffMax = 30 * time.Second
 	}
-
-	c.cmds = cmds
-
-	// --- Валидация обязательных полей ---
-	if cmds == nil {
-		return nil, fmt.Errorf("websocket stream: cmds channel: %w", errorsx.ErrRequired)
+	if cfg.PingEvery < 0 {
+		cfg.PingEvery = 0
 	}
-
-	if c.backoffMin <= 0 {
-		c.backoffMin = time.Second
+	if cfg.Dispatch == nil && cfg.OutBuf <= 0 {
+		cfg.OutBuf = 256
 	}
-	if c.backoffMax <= 0 {
-		c.backoffMax = 30 * time.Second
-	}
-	if c.pingEvery < 0 {
-		c.pingEvery = 0
-	}
-	if c.dispatch == nil && c.outBuf <= 0 {
-		c.outBuf = 256
+	if cfg.Logger == nil {
+		cfg.Logger = nopLogger
 	}
 
 	return &Stream{
-		url:          url,
-		dialOptions:  c.dialOptions,
-		cmds:         c.cmds,
-		auth:         c.auth,
-		dispatch:     c.dispatch,
-		onReconnect:  c.onReconnect,
-		outBuf:       c.outBuf,
-		backoffStart: c.backoffMin,
-		backoffMax:   c.backoffMax,
-		pingEvery:    c.pingEvery,
-		log:          c.logger.With("component", "ws.stream"),
+		url:          cfg.URL,
+		dialOptions:  cfg.DialOptions,
+		cmds:         cfg.Cmds,
+		auth:         cfg.Auth,
+		dispatch:     cfg.Dispatch,
+		onReconnect:  cfg.OnReconnect,
+		outBuf:       cfg.OutBuf,
+		backoffStart: cfg.BackoffStart,
+		backoffMax:   cfg.BackoffMax,
+		pingEvery:    cfg.PingEvery,
+		pingMsg:      cfg.PingMsg,
+		log:          cfg.Logger.With("component", "ws.stream"),
 	}, nil
 }

@@ -9,78 +9,30 @@ import (
 	"github.com/coder/websocket"
 )
 
-type StreamOption func(*streamCfg) error
+// StreamConfig holds all configuration for a Stream.
+// Zero values are valid: defaults are applied in NewStream.
+type StreamConfig struct {
+	URL         string
+	Cmds        chan Command
+	DialOptions *websocket.DialOptions
 
-type streamCfg struct {
-	dialOptions *websocket.DialOptions
-	cmds        chan Command
+	// Auth should be provided by every exchange
+	Auth        func(ctx context.Context) (any, error)
+	Dispatch    func(ctx context.Context, raw json.RawMessage) error
+	OnReconnect func(ctx context.Context) error
 
-	auth        func(ctx context.Context) (any, error)
-	dispatch    func(ctx context.Context, raw json.RawMessage) error
-	onReconnect func(ctx context.Context) error
-	outBuf      int
-	backoffMin  time.Duration
-	backoffMax  time.Duration
-	pingEvery   time.Duration
-	logger      *slog.Logger
-}
+	// OutBuf is the size of the output channel when Dispatch is nil. Default: 256.
+	OutBuf int
 
-func WithDialOptions(opt *websocket.DialOptions) StreamOption {
-	return func(c *streamCfg) error {
-		c.dialOptions = opt
-		return nil
-	}
-}
+	// BackoffStart and BackoffMax control reconnect delay. Defaults: 1s / 30s.
+	BackoffStart time.Duration
+	BackoffMax   time.Duration
 
-func WithAuth(fn func(ctx context.Context) (any, error)) StreamOption {
-	return func(c *streamCfg) error {
-		c.auth = fn
-		return nil
-	}
-}
+	// PingEvery enables periodic heartbeats. Zero disables.
+	PingEvery time.Duration
+	// PingMsg, when non-nil, sends a JSON application-level ping instead of a
+	// WebSocket protocol PING control frame (e.g. exchanges that require {"op":"ping"}).
+	PingMsg any
 
-func WithDispatch(fn func(ctx context.Context, raw json.RawMessage) error) StreamOption {
-	return func(c *streamCfg) error {
-		c.dispatch = fn
-		return nil
-	}
-}
-
-func WithOnReconnect(fn func(ctx context.Context) error) StreamOption {
-	return func(c *streamCfg) error {
-		c.onReconnect = fn
-		return nil
-	}
-}
-
-func WithOutBuf(n int) StreamOption {
-	return func(c *streamCfg) error {
-		c.outBuf = n
-		return nil
-	}
-}
-
-func WithReconnect(backoffStart, backoffMax time.Duration) StreamOption {
-	return func(c *streamCfg) error {
-		c.backoffMin = backoffStart
-		c.backoffMax = backoffMax
-		return nil
-	}
-}
-
-func WithPingEvery(d time.Duration) StreamOption {
-	return func(c *streamCfg) error {
-		c.pingEvery = d
-		return nil
-	}
-}
-
-func WithLogger(l *slog.Logger) StreamOption {
-	return func(c *streamCfg) error {
-		if l == nil {
-			l = nopLogger
-		}
-		c.logger = l
-		return nil
-	}
+	Logger *slog.Logger
 }

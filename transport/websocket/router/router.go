@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/transport/websocket"
@@ -20,64 +21,55 @@ type Router struct {
 	pipeBuf      int
 	topicsPerReq int
 	reqPerSec    int
+	pendingTTL   time.Duration
+	maxTopics    int
 	log          *slog.Logger
 	connected    bool
+	state        ConnState
 }
 
-// NewRouter — конструктор с дефолтами, валидацией и нормализацией.
-func NewRouter(deps Deps, opts ...Option) (*Router, error) {
-	if deps.Cmds == nil {
-		return nil, fmt.Errorf("websocket router: cmds channel: %w", errorsx.ErrRequired)
+// State returns the current connection state.
+func (r *Router) State() ConnState {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.state
+}
+
+func NewRouter(cfg Config) (*Router, error) {
+	if cfg.Cmds == nil {
+		return nil, fmt.Errorf("NewRouter: cmds: %w", errorsx.ErrRequired)
 	}
-	if deps.MsgBuilder == nil {
-		return nil, fmt.Errorf("websocket router: msg builder: %w", errorsx.ErrRequired)
+	if cfg.MsgBuilder == nil {
+		return nil, fmt.Errorf("NewRouter: msg builder: %w", errorsx.ErrRequired)
 	}
-	if deps.MsgDecoder == nil {
-		return nil, fmt.Errorf("websocket router: msg decoder: %w", errorsx.ErrRequired)
+	if cfg.MsgDecoder == nil {
+		return nil, fmt.Errorf("NewRouter: msg decoder: %w", errorsx.ErrRequired)
 	}
 
-	c := &cfg{
-		pipeBuf:      64,
-		topicsPerReq: 10,
-		reqPerSec:    10,
-		logger:       slog.New(slog.DiscardHandler),
-		maxPipeBuf:   1 << 20, // 1MB «мягкая» верхняя граница буфера
+	if cfg.PipeBuf <= 0 {
+		cfg.PipeBuf = 64
+	}
+	if cfg.TopicsPerReq <= 0 {
+		cfg.TopicsPerReq = 10
+	}
+	if cfg.ReqPerSec < 0 {
+		cfg.ReqPerSec = 1
+	}
+	if cfg.Logger == nil {
+		cfg.Logger = slog.New(slog.DiscardHandler)
 	}
 
-	for _, opt := range opts {
-		if err := opt(c); err != nil {
-			return nil, err
-		}
-	}
-
-	c.cmds = deps.Cmds
-	c.msgBuilder = deps.MsgBuilder
-	c.msgDecoder = deps.MsgDecoder
-
-	if c.pipeBuf <= 0 {
-		c.pipeBuf = 64
-	}
-	if c.pipeBuf > c.maxPipeBuf {
-		c.pipeBuf = c.maxPipeBuf
-	}
-	if c.topicsPerReq <= 0 {
-		c.topicsPerReq = 10
-	}
-	if c.reqPerSec < 0 {
-		c.reqPerSec = 1
-	}
-
-	r := &Router{
-		cmds:         c.cmds,
+	return &Router{
+		cmds:         cfg.Cmds,
 		pipes:        make(map[string]*pipe),
 		pending:      make(map[string]*pendingReq),
-		msgBuilder:   c.msgBuilder,
-		msgDecoder:   c.msgDecoder,
-		pipeBuf:      c.pipeBuf,
-		topicsPerReq: c.topicsPerReq,
-		reqPerSec:    c.reqPerSec,
-		log:          c.logger.With("component", "ws.router"),
-	}
-
-	return r, nil
+		msgBuilder:   cfg.MsgBuilder,
+		msgDecoder:   cfg.MsgDecoder,
+		pipeBuf:      cfg.PipeBuf,
+		topicsPerReq: cfg.TopicsPerReq,
+		reqPerSec:    cfg.ReqPerSec,
+		pendingTTL:   cfg.PendingTTL,
+		maxTopics:    cfg.MaxTopics,
+		log:          cfg.Logger.With("component", "ws.router"),
+	}, nil
 }

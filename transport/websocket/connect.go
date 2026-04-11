@@ -14,6 +14,8 @@ import (
 	"github.com/pulsoats/core/errorsx"
 )
 
+var errStopStream = errors.New("stream stopped")
+
 func (s *Stream) Connect(ctx context.Context) (chan json.RawMessage, error) {
 	var out chan json.RawMessage
 	if s.dispatch == nil {
@@ -95,7 +97,6 @@ func (s *Stream) Connect(ctx context.Context) (chan json.RawMessage, error) {
 				for {
 					var msg json.RawMessage
 					if err := wsjson.Read(cctx, c, &msg); err != nil {
-
 						var closeErr *websocket.CloseError
 						if errors.As(err, &closeErr) {
 							s.log.Info("websocket closed by server",
@@ -141,13 +142,18 @@ func (s *Stream) Connect(ctx context.Context) (chan json.RawMessage, error) {
 						select {
 						case <-t.C:
 							pingCtx, cancel := context.WithTimeout(cctx, 5*time.Second)
-							if err := c.Ping(pingCtx); err != nil {
-								cancel()
+							var pingErr error
+							if s.pingMsg != nil {
+								pingErr = wsjson.Write(pingCtx, c, s.pingMsg)
+							} else {
+								pingErr = c.Ping(pingCtx)
+							}
+							cancel()
+							if pingErr != nil {
 								// закрываем соединение — main-loop подберёт ошибку
 								_ = c.Close(websocket.StatusAbnormalClosure, "ping failed")
 								return
 							}
-							cancel()
 						case <-cctx.Done():
 							return
 						case <-stop:
@@ -169,7 +175,7 @@ func (s *Stream) Connect(ctx context.Context) (chan json.RawMessage, error) {
 								}
 								return e
 							default:
-								return fmt.Errorf("websocket connect: reader stream: %w", errorsx.ErrClosed)
+								return fmt.Errorf("connect: reader: %w", errors.Join(errorsx.ErrInternal, errorsx.ErrClosed))
 							}
 						}
 
@@ -188,7 +194,7 @@ func (s *Stream) Connect(ctx context.Context) (chan json.RawMessage, error) {
 						switch cmd.Op {
 						case CmdClose:
 							_ = conn.Close(websocket.StatusNormalClosure, "bye")
-							return nil
+							return errStopStream
 						case CmdSendJSON:
 							wctx, cancel := context.WithTimeout(connCtx, 5*time.Second)
 							err := wsjson.Write(wctx, conn, cmd.Payload)
@@ -217,13 +223,13 @@ func (s *Stream) Connect(ctx context.Context) (chan json.RawMessage, error) {
 			cancelConn()
 			_ = conn.Close(websocket.StatusNormalClosure, "end session")
 
-			// 1) Внешний ctx отменён — завершаем стрим и закрываем out (defer).
-			if ctx.Err() != nil {
-				s.log.Info("stream loop ended by context", "err", ctx.Err())
+			// 1) Внешний ctx отменён или явная остановка через CmdClose — завершаем стрим.
+			if ctx.Err() != nil || errors.Is(runErr, errStopStream) {
+				s.log.Info("stream loop ended", "err", runErr)
 				return
 			}
 
-			// 2) Нормальное завершение сессии (сервер закрыл / CmdClose / etc) — reconnect.
+			// 2) Нормальное завершение сессии (сервер закрыл) — reconnect.
 			if runErr == nil {
 				s.log.Info("session ended normally; reconnecting")
 				if !sleepBackoff(ctx, &backoff, s.backoffMax) {

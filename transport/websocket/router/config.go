@@ -1,57 +1,32 @@
 package router
 
 import (
-	"fmt"
 	"log/slog"
+	"time"
 
-	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/transport/websocket"
 )
 
-type Option func(*cfg) error
+// Config holds all configuration for a Router.
+// Zero values are valid: defaults are applied in NewRouter.
+type Config struct {
+	Cmds       chan websocket.Command
+	MsgBuilder MsgBuilder
+	MsgDecoder MsgDecoder
 
-type cfg struct {
-	cmds         chan websocket.Command
-	msgBuilder   MsgBuilder
-	msgDecoder   MsgDecoder
-	pipeBuf      int
-	topicsPerReq int
-	reqPerSec    int
-	logger       *slog.Logger
-	maxPipeBuf   int
-}
+	// PipeBuf is the buffer size of each topic channel. Default: 64.
+	PipeBuf int
+	// TopicsPerReq is the max topics per subscribe/unsubscribe request. Default: 10.
+	TopicsPerReq int
+	// ReqPerSec is the max requests per second (rate limit). Default: 10.
+	ReqPerSec int
+	// PendingTTL is the TTL for pending requests before the cleaner evicts them.
+	// Zero disables the cleaner.
+	PendingTTL time.Duration
 
-func WithMsgDecoder(d MsgDecoder) Option {
-	return func(c *cfg) error {
-		if d == nil {
-			return fmt.Errorf("websocket router: msg decoder: %w", errorsx.ErrRequired)
-		}
-		c.msgDecoder = d
-		return nil
-	}
-}
+	// MaxTopics is the maximum number of distinct topics per connection.
+	// Zero means unlimited.
+	MaxTopics int
 
-func WithPipeBuf(n int) Option {
-	return func(c *cfg) error {
-		c.pipeBuf = n
-		return nil
-	}
-}
-
-func WithLimits(topicsPerReq, reqPerSec int) Option {
-	return func(c *cfg) error {
-		c.topicsPerReq = topicsPerReq
-		c.reqPerSec = reqPerSec
-		return nil
-	}
-}
-
-func WithLogger(l *slog.Logger) Option {
-	return func(c *cfg) error {
-		if l == nil {
-			l = slog.New(slog.DiscardHandler)
-		}
-		c.logger = l
-		return nil
-	}
+	Logger *slog.Logger
 }

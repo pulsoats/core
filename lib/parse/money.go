@@ -1,8 +1,12 @@
 package parse
 
 import (
+	"errors"
+	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/pulsoats/core/errorsx"
 )
 
 // StrToCents - parsing price string with precision 2 to int64 * 100
@@ -13,7 +17,7 @@ func StrToCents(s string) (int64, error) {
 
 	intPart, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("to cents: %w", errors.Join(errorsx.ErrInvalidArgument, err))
 	}
 
 	var frac int64

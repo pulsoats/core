@@ -10,7 +10,7 @@ import (
 
 type Client struct {
 	mu     sync.RWMutex
-	conns  map[string]*conn
+	conns  map[string][]*conn
 	apiKey string
 	secret string
 	log    *slog.Logger
@@ -26,7 +26,7 @@ type Option func(*Client)
 func NewWebSocketClient(apiKey, secret string, opts ...Option) *Client {
 	c := &Client{
 		mu:     sync.RWMutex{},
-		conns:  make(map[string]*conn),
+		conns:  make(map[string][]*conn),
 		apiKey: apiKey,
 		secret: secret,
 		log:    slog.New(slog.DiscardHandler),

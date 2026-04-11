@@ -3,6 +3,7 @@ package websocket
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -10,9 +11,19 @@ import (
 	"github.com/pulsoats/core/domain/market"
 	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/exchanges/bybit/specs"
-	websocket3 "github.com/pulsoats/core/transport/websocket"
+	"github.com/pulsoats/core/transport/websocket"
 	"github.com/pulsoats/core/transport/websocket/router"
 )
+
+// categoryMaxTopics returns the max number of topics per WebSocket connection for a category.
+// 0 means no limit.
+// Options: 2000 topics per connection (Bybit docs).
+func categoryMaxTopics(cat market.Category) int {
+	if cat == specs.CategoryOption {
+		return 2000
+	}
+	return 0
+}
 
 func (w *Client) StreamCandles(ctx context.Context, spec market.CandleSpec, confirmedOnly bool) (chan market.Candle, <-chan error, error) {
 	w.log.Info("stream candles request",
@@ -32,57 +43,13 @@ func (w *Client) StreamCandles(ctx context.Context, spec market.CandleSpec, conf
 		return nil, nil, err
 	}
 
-	cmds := make(chan websocket3.Command, 8)
-	streamID := fmt.Sprintf("kline.%s", spec.Category)
-
-	w.mu.RLock()
-	sess, ok := w.conns[streamID]
-	if !ok {
-		w.mu.RUnlock()
-		r, err := router.NewRouter(router.Deps{
-			Cmds:       cmds,
-			MsgBuilder: bybitMsgBuilder{},
-			MsgDecoder: bybitMsgDecoder{},
-		}, router.WithLogger(w.log))
-		if err != nil {
-			w.log.Error("init router failed", "err", err)
-			return nil, nil, err
-		}
-
-		s, err := websocket3.NewStream(
-			url,
-			cmds,
-			websocket3.WithDispatch(r.Dispatch),
-			websocket3.WithOnReconnect(r.OnReconnect),
-			websocket3.WithReconnect(time.Second, 30*time.Second),
-			websocket3.WithPingEvery(time.Second*20),
-			websocket3.WithLogger(w.log),
-		)
-		if err != nil {
-			w.log.Error("init stream failed", "err", err)
-			return nil, nil, err
-		}
-
-		sess = &conn{stream: s, router: r}
-		if _, err = s.Connect(ctx); err != nil {
-			w.log.Error("connect stream failed", "err", err)
-			return nil, nil, err
-		}
-		w.mu.Lock()
-		w.conns[streamID] = sess
-		w.mu.Unlock()
-		w.log.Info("stream session created", "stream_id", streamID)
-	} else {
-		w.mu.RUnlock()
-		w.log.Debug("reuse stream session", "stream_id", streamID)
-	}
-
 	iv = strings.ToUpper(strings.TrimSpace(iv))
 	topic := fmt.Sprintf("kline.%s.%s", iv, spec.Symbol)
+	streamID := fmt.Sprintf("kline.%s", spec.Category)
+	maxTopics := categoryMaxTopics(spec.Category)
 
-	pipes, err := sess.router.Acquire(ctx, []string{topic})
+	sess, pipes, err := w.acquireConn(ctx, streamID, url, topic, maxTopics)
 	if err != nil {
-		w.log.Error("router acquire failed", "err", err, "topic", topic)
 		return nil, nil, err
 	}
 
@@ -108,7 +75,7 @@ func (w *Client) StreamCandles(ctx context.Context, spec market.CandleSpec, conf
 		for {
 			select {
 			case <-ctx.Done():
-				if releaseErr := sess.router.Release(ctx, []string{topic}); releaseErr != nil {
+				if releaseErr := sess.router.Unsubscribe(ctx, pipes); releaseErr != nil {
 					sendErr(fmt.Errorf("release topic %s: %w", topic, releaseErr))
 					w.log.Warn("router release failed", "err", releaseErr, "topic", topic)
 				}
@@ -146,4 +113,89 @@ func (w *Client) StreamCandles(ctx context.Context, spec market.CandleSpec, conf
 	}()
 
 	return out, errCh, nil
+}
+
+// acquireConn finds an existing conn in the pool with capacity for topic,
+// or creates a new one. Returns the conn and the result of Subscribe.
+func (w *Client) acquireConn(
+	ctx context.Context,
+	streamID, url, topic string,
+	maxTopics int,
+) (*conn, map[string]chan json.RawMessage, error) {
+	w.mu.RLock()
+	pool := w.conns[streamID]
+	w.mu.RUnlock()
+
+	// Try existing conns in order.
+	for _, c := range pool {
+		pipes, err := c.router.Subscribe(ctx, []string{topic})
+		if err == nil {
+			return c, pipes, nil
+		}
+		if !errors.Is(err, errorsx.ErrCapacityExceeded) {
+			w.log.Error("router subscribe failed", "err", err, "stream_id", streamID)
+			return nil, nil, err
+		}
+		w.log.Debug("conn at capacity, trying next", "stream_id", streamID)
+	}
+
+	// All conns full (or no conns yet): open a new one.
+	newSess, err := w.openConn(ctx, url, streamID, maxTopics)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pipes, err := newSess.router.Subscribe(ctx, []string{topic})
+	if err != nil {
+		return nil, nil, fmt.Errorf("subscribe on new conn: %w", err)
+	}
+
+	w.mu.Lock()
+	w.conns[streamID] = append(w.conns[streamID], newSess)
+	w.mu.Unlock()
+
+	return newSess, pipes, nil
+}
+
+// openConn creates, connects, and returns a new conn for streamID.
+func (w *Client) openConn(ctx context.Context, url, streamID string, maxTopics int) (*conn, error) {
+	cmds := make(chan websocket.Command, 8)
+
+	r, err := router.NewRouter(router.Config{
+		Cmds:       cmds,
+		MsgBuilder: bybitMsgBuilder{},
+		MsgDecoder: bybitMsgDecoder{},
+		MaxTopics:  maxTopics,
+		Logger:     w.log,
+	})
+	if err != nil {
+		w.log.Error("init router failed", "err", err)
+		return nil, err
+	}
+
+	s, err := websocket.NewStream(websocket.StreamConfig{
+		URL:          url,
+		Cmds:         cmds,
+		Dispatch:     r.Dispatch,
+		OnReconnect:  r.OnReconnect,
+		BackoffStart: time.Second,
+		BackoffMax:   30 * time.Second,
+		PingEvery:    20 * time.Second,
+		PingMsg: struct {
+			Op string `json:"op"`
+		}{"ping"},
+		Logger: w.log,
+	})
+	if err != nil {
+		w.log.Error("init stream failed", "err", err)
+		return nil, err
+	}
+
+	if _, err = s.Connect(ctx); err != nil {
+		w.log.Error("connect stream failed", "err", err)
+		return nil, err
+	}
+
+	w.log.Info("stream session created", "stream_id", streamID, "max_topics", maxTopics)
+	return &conn{stream: s, router: r}, nil
 }

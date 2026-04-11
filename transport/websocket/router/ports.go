@@ -1,21 +1,14 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
-
-	"github.com/pulsoats/core/transport/websocket"
 )
 
-type Deps struct {
-	Cmds       chan websocket.Command
-	MsgBuilder MsgBuilder
-	MsgDecoder MsgDecoder
-}
-
 type MsgBuilder interface {
-	Build(reqID string, op Op, topics []string) (any, error)
+	Build(ctx context.Context, reqID string, op Op, topics []string) (any, error)
 }
 
 type MsgDecoder interface {
-	Decode(raw json.RawMessage) (*StreamMsg, error)
+	Decode(ctx context.Context, raw json.RawMessage) (*StreamMsg, error)
 }

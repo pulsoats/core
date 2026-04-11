@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"context"
 	"testing"
 
 	"github.com/pulsoats/core/transport/websocket/router"
@@ -32,7 +33,7 @@ func Test_buildRequest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			bmb := bybitMsgBuilder{}
-			gotReq, err := bmb.Build(tt.reqID, tt.op, tt.topics)
+			gotReq, err := bmb.Build(context.Background(), tt.reqID, tt.op, tt.topics)
 			require.NoError(t, err)
 
 			wantReq := request{
