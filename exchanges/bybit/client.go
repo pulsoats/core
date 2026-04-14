@@ -90,6 +90,6 @@ func (b *Bybit) InstrumentExists(ctx context.Context, category market.Category, 
 	return b.rest.InstrumentExists(ctx, category, symbol)
 }
 
-func (b *Bybit) StreamCandles(ctx context.Context, spec market.CandleSpec, confirmedOnly bool) (chan market.Candle, <-chan error, error) {
-	return b.ws.StreamCandles(ctx, spec, confirmedOnly)
+func (b *Bybit) StreamCandles(ctx context.Context, spec market.Spec, interval market.Interval, confirmedOnly bool) (chan market.Candle, <-chan error, error) {
+	return b.ws.StreamCandles(ctx, spec, interval, confirmedOnly)
 }
