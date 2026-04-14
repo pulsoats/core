@@ -25,16 +25,16 @@ func categoryMaxTopics(cat market.Category) int {
 	return 0
 }
 
-func (w *Client) StreamCandles(ctx context.Context, spec market.CandleSpec, confirmedOnly bool) (chan market.Candle, <-chan error, error) {
+func (w *Client) StreamCandles(ctx context.Context, spec market.Spec, interval market.Interval, confirmedOnly bool) (chan market.Candle, <-chan error, error) {
 	w.log.Info("stream candles request",
 		"category", spec.Category,
 		"symbol", spec.Symbol,
-		"interval", spec.Interval,
+		"interval", interval,
 		"confirmed_only", confirmedOnly,
 	)
-	iv, ok := specs.SupportedIntervals[spec.Interval]
+	iv, ok := specs.SupportedIntervals[interval]
 	if !ok {
-		return nil, nil, fmt.Errorf("bybit websocket: stream candles interval=%s: %w", spec.Interval, errorsx.ErrInvalidArgument)
+		return nil, nil, fmt.Errorf("bybit websocket: stream candles interval=%s: %w", interval, errorsx.ErrInvalidArgument)
 	}
 
 	url, err := resolveURL(scopePublic, spec.Category)

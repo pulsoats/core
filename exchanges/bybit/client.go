@@ -34,7 +34,6 @@ var Metadata = exchange.Meta{
 	Code:       Code,
 	Intervals:  specs.ListIntervals(),
 	Categories: specs.ListCategories(),
-	PriceTypes: specs.ListPriceTypes(),
 }
 
 type Bybit struct {
@@ -75,8 +74,8 @@ func WithLogger(l *slog.Logger) Option {
 	}
 }
 
-func (b *Bybit) Candles(ctx context.Context, spec market.CandleSpec, from time.Time, to time.Time, priceType market.PriceType) ([]market.Candle, error) {
-	return b.rest.Candles(ctx, spec, from, to, priceType)
+func (b *Bybit) Candles(ctx context.Context, spec market.CandleSpec, from time.Time, to time.Time) ([]market.Candle, error) {
+	return b.rest.Candles(ctx, spec, from, to)
 }
 
 func (b *Bybit) FeeRate(ctx context.Context, category market.Category, symbol, baseCoin string) (market.TakerMakerFees, error) {

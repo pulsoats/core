@@ -20,14 +20,10 @@ import (
 
 const bybitMarketPath = "/v5/market"
 
-const (
-	lastPricePath  = "kline"
-	indexPricePath = "index-price-kline"
-	markPricePath  = "mark-price-kline"
-)
+const lastPricePath = "kline"
 
 // Candles loads candles(klines) from Bybit in ASC order ("to" time excluded)
-func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.Time, to time.Time, priceType market.PriceType) ([]market.Candle, error) {
+func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.Time, to time.Time) ([]market.Candle, error) {
 	if r.client == nil {
 		r.client = http.DefaultClient
 	}
@@ -55,17 +51,7 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 	}
 	u = u.JoinPath(bybitMarketPath)
 
-	var klinePath string
-	switch priceType {
-	case specs.PriceTypeIndex:
-		klinePath = indexPricePath
-	case specs.PriceTypeMark:
-		klinePath = markPricePath
-	default:
-		klinePath = lastPricePath
-	}
-
-	u = u.JoinPath(klinePath)
+	u = u.JoinPath(lastPricePath)
 
 	const limit = 1000
 	step := time.Duration(limit) * intervalDur
@@ -181,7 +167,7 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 
 		page := make([]market.Candle, 0, len(resp.Result.List))
 		for _, raw := range resp.Result.List {
-			c, derr := decodeCandle(raw, priceType)
+			c, derr := decodeCandle(raw)
 			if derr != nil {
 				return nil, derr
 			}
@@ -231,8 +217,8 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 	return out, nil
 }
 
-func decodeCandle(rawCandle []string, priceType market.PriceType) (market.Candle, error) {
-	if len(rawCandle) < 5 {
+func decodeCandle(rawCandle []string) (market.Candle, error) {
+	if len(rawCandle) < 7 {
 		return market.Candle{}, fmt.Errorf("bybit rest: decode candle len=%d want>=7: %w", len(rawCandle), errorsx.ErrInvalidArgument)
 	}
 	ts, err := strconv.ParseInt(rawCandle[0], 10, 64)
@@ -257,29 +243,24 @@ func decodeCandle(rawCandle []string, priceType market.PriceType) (market.Candle
 		return market.Candle{}, err
 	}
 
-	var volume int64
-	var turnover float64
-	if priceType == specs.PriceTypeLast {
-		volumeFloat, err := strconv.ParseFloat(rawCandle[5], 64)
-		if err != nil {
-			return market.Candle{}, err
-		}
-		volume = int64(volumeFloat * float64(units.PPM))
+	volumeFloat, err := strconv.ParseFloat(rawCandle[5], 64)
+	if err != nil {
+		return market.Candle{}, err
+	}
+	volume := int64(volumeFloat * float64(units.PPM))
 
-		turnover, err = strconv.ParseFloat(rawCandle[6], 64)
-		if err != nil {
-			return market.Candle{}, err
-		}
+	turnover, err := strconv.ParseFloat(rawCandle[6], 64)
+	if err != nil {
+		return market.Candle{}, err
 	}
 
 	return market.Candle{
-		Time:      ts,
-		Open:      openVal,
-		High:      highVal,
-		Low:       lowVal,
-		Close:     closeVal,
-		Volume:    volume,
-		Turnover:  turnover,
-		PriceType: priceType,
+		Time:     ts,
+		Open:     openVal,
+		High:     highVal,
+		Low:      lowVal,
+		Close:    closeVal,
+		Volume:   volume,
+		Turnover: turnover,
 	}, nil
 }

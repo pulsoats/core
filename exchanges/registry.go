@@ -156,10 +156,5 @@ func cloneMetadata(meta exchange.Meta) exchange.Meta {
 	} else {
 		cloned.Categories = nil
 	}
-	if len(meta.PriceTypes) > 0 {
-		cloned.PriceTypes = append([]market.PriceType(nil), meta.PriceTypes...)
-	} else {
-		cloned.PriceTypes = nil
-	}
 	return cloned
 }

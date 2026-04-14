@@ -1,7 +1,5 @@
 package market
 
-type PriceType string
-
 type Candle struct {
 	Time      int64
 	Open      int64
@@ -10,5 +8,4 @@ type Candle struct {
 	Close     int64
 	Volume    int64
 	Turnover  float64
-	PriceType PriceType
 }

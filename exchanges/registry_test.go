@@ -82,7 +82,7 @@ type stubAPI struct {
 
 func (s *stubAPI) Code() string                 { return s.code }
 func (s *stubAPI) Intervals() []market.Interval { return nil }
-func (s *stubAPI) Candles(context.Context, market.CandleSpec, time.Time, time.Time, market.PriceType) ([]market.Candle, error) {
+func (s *stubAPI) Candles(context.Context, market.CandleSpec, time.Time, time.Time) ([]market.Candle, error) {
 	return nil, nil
 }
 
