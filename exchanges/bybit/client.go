@@ -14,6 +14,12 @@ import (
 
 const Code = "bybit"
 
+var Metadata = exchange.Meta{
+	Code:       Code,
+	Intervals:  specs.ListIntervals(),
+	Categories: specs.ListCategories(),
+}
+
 var supportedIntervals = []market.Interval{
 	market.Interval1m,
 	market.Interval3m,
@@ -30,16 +36,14 @@ var supportedIntervals = []market.Interval{
 	market.Interval1M,
 }
 
-var Metadata = exchange.Meta{
-	Code:       Code,
-	Intervals:  specs.ListIntervals(),
-	Categories: specs.ListCategories(),
-}
 
 type Bybit struct {
 	rest *rest.Client
 	ws   *websocket.Client
-	log  *slog.Logger
+}
+
+func (b *Bybit) Meta() exchange.Meta {
+	return Metadata
 }
 
 func (b *Bybit) Code() string {
@@ -50,27 +54,13 @@ func (b *Bybit) Intervals() []market.Interval {
 	return append([]market.Interval(nil), supportedIntervals...)
 }
 
-type Option func(*Bybit)
-
-func NewBybitClient(apiKey, secret string, opts ...Option) *Bybit {
-	b := &Bybit{log: slog.New(slog.DiscardHandler)}
-	for _, opt := range opts {
-		opt(b)
+func NewBybitClient(apiKey, secret string, logger *slog.Logger) *Bybit {
+	if logger == nil {
+		logger = slog.Default()
 	}
-	restClient := rest.NewClient(apiKey, secret, 5*time.Second, rest.WithLogger(b.log))
-	wsClient := websocket.NewWebSocketClient(apiKey, secret, websocket.WithLogger(b.log))
-
-	b.rest = restClient
-	b.ws = wsClient
-	return b
-}
-
-func WithLogger(l *slog.Logger) Option {
-	return func(b *Bybit) {
-		if l == nil {
-			l = slog.New(slog.DiscardHandler)
-		}
-		b.log = l
+	return &Bybit{
+		rest: rest.NewClient(apiKey, secret, 5*time.Second, rest.WithLogger(logger)),
+		ws:   websocket.NewWebSocketClient(apiKey, secret, websocket.WithLogger(logger)),
 	}
 }
 
