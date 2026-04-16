@@ -74,8 +74,8 @@ func WithLogger(l *slog.Logger) Option {
 	}
 }
 
-func (b *Bybit) Candles(ctx context.Context, spec market.CandleSpec, from time.Time, to time.Time) ([]market.Candle, error) {
-	return b.rest.Candles(ctx, spec, from, to)
+func (b *Bybit) Candles(ctx context.Context, spec market.Spec, interval market.Interval, from time.Time, to time.Time) ([]market.Candle, error) {
+	return b.rest.Candles(ctx, spec, interval, from, to)
 }
 
 func (b *Bybit) FeeRate(ctx context.Context, category market.Category, symbol, baseCoin string) (market.TakerMakerFees, error) {

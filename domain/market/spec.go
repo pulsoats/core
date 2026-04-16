@@ -5,8 +5,3 @@ type Spec struct {
 	Category Category `json:"category"`
 	Symbol   string   `json:"symbol"`
 }
-
-type CandleSpec struct {
-	Spec
-	Interval
-}

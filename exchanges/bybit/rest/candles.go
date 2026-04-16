@@ -23,7 +23,7 @@ const bybitMarketPath = "/v5/market"
 const lastPricePath = "kline"
 
 // Candles loads candles(klines) from Bybit in ASC order ("to" time excluded)
-func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.Time, to time.Time) ([]market.Candle, error) {
+func (r *Client) Candles(ctx context.Context, spec market.Spec, interval market.Interval, from time.Time, to time.Time) ([]market.Candle, error) {
 	if r.client == nil {
 		r.client = http.DefaultClient
 	}
@@ -31,18 +31,18 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 		return nil, fmt.Errorf("bybit rest: candles category=%v: %w", spec.Category, errorsx.ErrNotFound)
 	}
 
-	intervalStr, ok := specs.SupportedIntervals[spec.Interval]
+	intervalStr, ok := specs.SupportedIntervals[interval]
 	if !ok {
-		return nil, fmt.Errorf("bybit rest: candles interval=%v: %w", spec.Interval, errorsx.ErrNotFound)
+		return nil, fmt.Errorf("bybit rest: candles interval=%v: %w", interval, errorsx.ErrNotFound)
 	}
 
 	if !from.Before(to) {
 		return nil, fmt.Errorf("bybit rest: candles from must be < to: %w", errorsx.ErrInvalidArgument)
 	}
 
-	intervalDur := time.Duration(spec.Interval)
+	intervalDur := time.Duration(interval)
 	if intervalDur <= 0 {
-		return nil, fmt.Errorf("bybit rest: candles invalid interval=%v: %w", spec.Interval, errorsx.ErrInvalidArgument)
+		return nil, fmt.Errorf("bybit rest: candles invalid interval=%v: %w", interval, errorsx.ErrInvalidArgument)
 	}
 
 	u, err := url.Parse(BybitV5URL)
@@ -80,7 +80,7 @@ func (r *Client) Candles(ctx context.Context, spec market.CandleSpec, from time.
 		r.log.Debug("rest candles request",
 			"symbol", spec.Symbol,
 			"category", spec.Category,
-			"interval", spec.Interval,
+			"interval", interval,
 			"start", start,
 			"end", end,
 		)

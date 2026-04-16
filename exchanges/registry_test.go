@@ -82,7 +82,7 @@ type stubAPI struct {
 
 func (s *stubAPI) Code() string                 { return s.code }
 func (s *stubAPI) Intervals() []market.Interval { return nil }
-func (s *stubAPI) Candles(context.Context, market.CandleSpec, time.Time, time.Time) ([]market.Candle, error) {
+func (s *stubAPI) Candles(context.Context, market.Spec, market.Interval, time.Time, time.Time) ([]market.Candle, error) {
 	return nil, nil
 }
 
@@ -94,7 +94,7 @@ func (s *stubAPI) DefaultFees(category market.Category) (market.TakerMakerFees, 
 	return market.TakerMakerFees{}, nil
 }
 
-func (s *stubAPI) StreamCandles(context.Context, market.CandleSpec, bool) (chan market.Candle, <-chan error, error) {
+func (s *stubAPI) StreamCandles(context.Context, market.Spec, market.Interval, bool) (chan market.Candle, <-chan error, error) {
 	return nil, nil, nil
 }
 
