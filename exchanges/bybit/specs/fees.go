@@ -7,6 +7,7 @@ import (
 	"github.com/pulsoats/core/errorsx"
 )
 
+// DefaultFees возвращает дефолтные комиссии из документации Bybit без запроса к бирже.
 func DefaultFees(category market.Category) (market.TakerMakerFees, error) {
 	switch category {
 	case CategorySpot:

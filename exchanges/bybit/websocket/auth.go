@@ -1,7 +1,6 @@
 package websocket
 
 import (
-	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -17,7 +16,8 @@ type authMsg struct {
 	Args []string `json:"args"`
 }
 
-func (w *Client) Auth(ctx context.Context) (any, error) {
+// Auth возвращает сообщение авторизации, которое содержит API-ключ, expires и подпись для WebSocket-соединения Bybit.
+func (w *Client) Auth() (any, error) {
 	if w.apiKey == "" || w.secret == "" {
 		return nil, fmt.Errorf("bybit websocket: auth api secret: %w", errorsx.ErrRequired)
 	}

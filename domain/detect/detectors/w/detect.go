@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/pulsoats/core/domain/detect"
@@ -175,15 +176,17 @@ func (d *Detector) Detect(ctx context.Context, window []market.Candle, fees mark
 	extremes := []market.Candle{window[leftMinIdx], window[maxIndex], window[rightMinIdx]}
 
 	return detect.Signal{
-		ID:              id,
-		Detector:        d.Code(),
-		Time:            window[lastIdx].Time,
-		Value:           window[lastIdx].Close, // сигнал по текущей (последней) свече окна
-		BuyValue:        maxVal,
-		TakeProfitValue: tpValue,
-		StopLossValue:   slValue,
-		Extremes:        extremes,
-		Fingerprint:     identity.MakeFingerprint(fmt.Sprintf("%s|%s|%v", d.Code(), d.label, window[maxIndex].Time)),
+		ID:                id,
+		DetectorCode:      d.Code(),
+		DetectorOptsLabel: d.optsLabel,
+		Time:              window[lastIdx].Time,
+		Value:             window[lastIdx].Close, // сигнал по текущей (последней) свече окна
+		BuyValue:          maxVal,
+		TakeProfitValue:   tpValue,
+		StopLossValue:     slValue,
+		Extremes:          extremes,
+		Fingerprint:       identity.MakeFingerprint(fmt.Sprintf("%s|%s|%v", d.Code(), d.optsLabel, window[maxIndex].Time)),
+		CreatedAt:         time.Now().UnixMilli(),
 	}, true, nil
 }
 

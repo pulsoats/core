@@ -8,8 +8,8 @@ import (
 type Signal struct {
 	ID                uuid.UUID
 	RunID             uuid.UUID
-	Detector          string
-	OptsLabel         string
+	DetectorCode      string
+	DetectorOptsLabel string
 	Time              int64
 	Value             int64
 	BuyValue          int64
@@ -18,4 +18,5 @@ type Signal struct {
 	ExpectedReturnPPM int64
 	Extremes          []market.Candle
 	Fingerprint       uuid.UUID
+	CreatedAt         int64
 }

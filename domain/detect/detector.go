@@ -15,7 +15,7 @@ const (
 
 type Detector interface {
 	Code() string
-	Label() string
+	OptsLabel() string
 	Kind() DetectorKind
 }
 
@@ -28,9 +28,9 @@ type CandleDetector interface {
 }
 
 type DetectorConfig struct {
-	Code  string
-	Label string
-	Opts  json.RawMessage
+	Code      string
+	OptsLabel string
+	Opts      json.RawMessage
 }
 
 func (d DetectorConfig) String() string {

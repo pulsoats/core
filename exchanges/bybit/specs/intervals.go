@@ -6,6 +6,7 @@ import (
 	"github.com/pulsoats/core/domain/market"
 )
 
+// SupportedIntervals содержит поддерживаемые интервалы Bybit и их строковые представления
 var SupportedIntervals = map[market.Interval]string{
 	market.Interval1m:  "1",
 	market.Interval3m:  "3",
@@ -22,6 +23,7 @@ var SupportedIntervals = map[market.Interval]string{
 	market.Interval1M:  "M",
 }
 
+// ListIntervals возвращает слайс интервалов в ASC порядке
 func ListIntervals() []market.Interval {
 	res := make([]market.Interval, 0, len(SupportedIntervals))
 	for k, _ := range SupportedIntervals {

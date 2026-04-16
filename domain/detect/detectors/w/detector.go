@@ -11,18 +11,18 @@ const description = `Детектор паттерна "Двойное дно" (
 const version = "0.1.0-beta.2"
 
 type Detector struct {
-	label string
-	opts  Opts
+	optsLabel string
+	opts      Opts
 }
 
 // NewWDetector создает W-детектор.
-func NewWDetector(label string, opts Opts) (detect.CandleDetector, error) {
+func NewWDetector(optsLabel string, opts Opts) (detect.CandleDetector, error) {
 	if err := opts.Validate(); err != nil {
 		return &Detector{}, err
 	}
 
-	if label == "" {
-		label = fmt.Sprintf("%v|%v|%v|%v|%v|%v|%v|%v|%v",
+	if optsLabel == "" {
+		optsLabel = fmt.Sprintf("%v|%v|%v|%v|%v|%v|%v|%v|%v",
 			opts.LocalMinsDeviation,
 			opts.MinMaxDeviation,
 			opts.VolumeSpikeMultiplier,
@@ -34,13 +34,13 @@ func NewWDetector(label string, opts Opts) (detect.CandleDetector, error) {
 			opts.WindowSize,
 		)
 	}
-	return &Detector{label: label, opts: opts}, nil
+	return &Detector{optsLabel: optsLabel, opts: opts}, nil
 }
 
 func (d *Detector) Code() string { return "W" }
 
-func (d *Detector) Label() string {
-	return d.label
+func (d *Detector) OptsLabel() string {
+	return d.optsLabel
 }
 
 func (d *Detector) Kind() detect.DetectorKind { return detect.DetectorKindCandle }

@@ -101,7 +101,7 @@ func registerDetector[Opts any, Det detect.Detector](
 
 func registerCandleDetector[Opts any](r *Registry, meta detect.DetectorMeta, factory func(label string, opts Opts) (detect.CandleDetector, error)) error {
 	if meta.Kind != detect.DetectorKindCandle {
-		return fmt.Errorf("register Candle Detector: unexpected detector kind: %w", errorsx.ErrInternal)
+		return fmt.Errorf("register Candle DetectorCode: unexpected detector kind: %w", errorsx.ErrInternal)
 	}
 	return registerDetector(r, meta, factory)
 }
