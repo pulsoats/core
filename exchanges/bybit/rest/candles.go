@@ -15,7 +15,7 @@ import (
 	"github.com/pulsoats/core/exchanges/bybit/specs"
 	"github.com/pulsoats/core/lib/parse"
 	"github.com/pulsoats/core/lib/units"
-	market2 "github.com/pulsoats/core/market"
+	"github.com/pulsoats/core/market"
 )
 
 const bybitMarketPath = "/v5/market"
@@ -23,7 +23,7 @@ const bybitMarketPath = "/v5/market"
 const lastPricePath = "kline"
 
 // Candles loads candles(klines) from Bybit in ASC order ("to" time excluded)
-func (r *Client) Candles(ctx context.Context, spec market2.Spec, interval market2.Interval, from time.Time, to time.Time) ([]market2.Candle, error) {
+func (r *Client) Candles(ctx context.Context, spec market.Spec, interval market.Interval, from time.Time, to time.Time) ([]market.Candle, error) {
 	if r.client == nil {
 		r.client = http.DefaultClient
 	}
@@ -59,7 +59,7 @@ func (r *Client) Candles(ctx context.Context, spec market2.Spec, interval market
 	toMs := to.UnixMilli()
 	fromMs := from.UnixMilli()
 
-	candles := make([]market2.Candle, 0, 9000)
+	candles := make([]market.Candle, 0, 9000)
 	var lastAppendedTs int64 = -1
 
 	for start.Before(to) {
@@ -165,7 +165,7 @@ func (r *Client) Candles(ctx context.Context, spec market2.Spec, interval market
 			continue
 		}
 
-		page := make([]market2.Candle, 0, len(resp.Result.List))
+		page := make([]market.Candle, 0, len(resp.Result.List))
 		for _, raw := range resp.Result.List {
 			c, derr := decodeCandle(raw)
 			if derr != nil {
@@ -217,44 +217,44 @@ func (r *Client) Candles(ctx context.Context, spec market2.Spec, interval market
 	return out, nil
 }
 
-func decodeCandle(rawCandle []string) (market2.Candle, error) {
+func decodeCandle(rawCandle []string) (market.Candle, error) {
 	if len(rawCandle) < 7 {
-		return market2.Candle{}, fmt.Errorf("bybit rest: decode candle len=%d want>=7: %w", len(rawCandle), errorsx.ErrInvalidArgument)
+		return market.Candle{}, fmt.Errorf("bybit rest: decode candle len=%d want>=7: %w", len(rawCandle), errorsx.ErrInvalidArgument)
 	}
 	ts, err := strconv.ParseInt(rawCandle[0], 10, 64)
 	if err != nil {
-		return market2.Candle{}, err
+		return market.Candle{}, err
 	}
 
 	openVal, err := parse.StrToCents(rawCandle[1])
 	if err != nil {
-		return market2.Candle{}, err
+		return market.Candle{}, err
 	}
 	highVal, err := parse.StrToCents(rawCandle[2])
 	if err != nil {
-		return market2.Candle{}, err
+		return market.Candle{}, err
 	}
 	lowVal, err := parse.StrToCents(rawCandle[3])
 	if err != nil {
-		return market2.Candle{}, err
+		return market.Candle{}, err
 	}
 	closeVal, err := parse.StrToCents(rawCandle[4])
 	if err != nil {
-		return market2.Candle{}, err
+		return market.Candle{}, err
 	}
 
 	volumeFloat, err := strconv.ParseFloat(rawCandle[5], 64)
 	if err != nil {
-		return market2.Candle{}, err
+		return market.Candle{}, err
 	}
 	volume := int64(volumeFloat * float64(units.PPM))
 
 	turnover, err := strconv.ParseFloat(rawCandle[6], 64)
 	if err != nil {
-		return market2.Candle{}, err
+		return market.Candle{}, err
 	}
 
-	return market2.Candle{
+	return market.Candle{
 		Time:     ts,
 		Open:     openVal,
 		High:     highVal,

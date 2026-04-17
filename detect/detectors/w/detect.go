@@ -10,13 +10,13 @@ import (
 	"github.com/pulsoats/core/detect"
 	"github.com/pulsoats/core/identity"
 	"github.com/pulsoats/core/lib/units"
-	market2 "github.com/pulsoats/core/market"
+	"github.com/pulsoats/core/market"
 )
 
 // Detect - поиск паттерна в переданном окне, возвращает сигнал при успешном поиске.
 // Сигнал выставляется по последней свече окна.
 // "Не пробила бай" — по High.
-func (d *Detector) Detect(ctx context.Context, window []market2.Candle, fees market2.TakerMakerFees) (detect.Signal, bool, error) {
+func (d *Detector) Detect(ctx context.Context, window []market.Candle, fees market.TakerMakerFees) (detect.Signal, bool, error) {
 	var zero detect.Signal
 
 	if err := ctx.Err(); err != nil {
@@ -124,7 +124,7 @@ func (d *Detector) Detect(ctx context.Context, window []market2.Candle, fees mar
 	tpValue := leftMaxVal - ((leftMaxVal-maxVal)*opts.TakeProfitRatio)/units.PPM
 
 	// 6) Проверка комиссий/спреда: TP должен перекрывать издержки (как у тебя)
-	minTP := (maxVal*(fees.TakerFeeRate+market2.SpreadPPM)+tpValue*fees.MakerFeeRate)/units.PPM + maxVal
+	minTP := (maxVal*(fees.TakerFeeRate+market.SpreadPPM)+tpValue*fees.MakerFeeRate)/units.PPM + maxVal
 	if tpValue < minTP {
 		return zero, false, nil
 	}
@@ -173,7 +173,7 @@ func (d *Detector) Detect(ctx context.Context, window []market2.Candle, fees mar
 
 	id, _ := uuid.NewV7()
 
-	extremes := []market2.Candle{window[leftMinIdx], window[maxIndex], window[rightMinIdx]}
+	extremes := []market.Candle{window[leftMinIdx], window[maxIndex], window[rightMinIdx]}
 
 	return detect.Signal{
 		ID:                id,
@@ -193,7 +193,7 @@ func (d *Detector) Detect(ctx context.Context, window []market2.Candle, fees mar
 // findLocalMins - поиск локальных минимумов по Close.
 // Внутри окна: правильный локальный минимум (ниже чем точки слева и справа).
 // Последняя точка: допускается как кандидат, если это новый минимум относительно всего слева (по Close).
-func findLocalMins(ctx context.Context, window []market2.Candle) ([]int, error) {
+func findLocalMins(ctx context.Context, window []market.Candle) ([]int, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

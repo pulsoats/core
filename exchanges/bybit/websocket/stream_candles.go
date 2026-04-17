@@ -10,7 +10,7 @@ import (
 
 	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/exchanges/bybit/specs"
-	market2 "github.com/pulsoats/core/market"
+	"github.com/pulsoats/core/market"
 	"github.com/pulsoats/core/transport/websocket"
 	"github.com/pulsoats/core/transport/websocket/router"
 )
@@ -18,14 +18,14 @@ import (
 // categoryMaxTopics returns the max number of topics per WebSocket connection for a category.
 // 0 means no limit.
 // Options: 2000 topics per connection (Bybit docs).
-func categoryMaxTopics(cat market2.Category) int {
+func categoryMaxTopics(cat market.Category) int {
 	if cat == specs.CategoryOption {
 		return 2000
 	}
 	return 0
 }
 
-func (w *Client) StreamCandles(ctx context.Context, spec market2.Spec, interval market2.Interval, confirmedOnly bool) (chan market2.Candle, <-chan error, error) {
+func (w *Client) StreamCandles(ctx context.Context, spec market.Spec, interval market.Interval, confirmedOnly bool) (chan market.Candle, <-chan error, error) {
 	w.log.Info("stream candles request",
 		"category", spec.Category,
 		"symbol", spec.Symbol,
@@ -58,7 +58,7 @@ func (w *Client) StreamCandles(ctx context.Context, spec market2.Spec, interval 
 		return nil, nil, fmt.Errorf("bybit websocket: stream candles pipe not found for topic=%s: %w", topic, errorsx.ErrNotFound)
 	}
 
-	out := make(chan market2.Candle, 256)
+	out := make(chan market.Candle, 256)
 	errCh := make(chan error, 1)
 
 	go func() {

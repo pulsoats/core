@@ -2,13 +2,13 @@ package detect
 
 import (
 	"github.com/google/uuid"
-	market2 "github.com/pulsoats/core/market"
+	"github.com/pulsoats/core/market"
 )
 
 type Signal struct {
 	ID                uuid.UUID
 	RunID             uuid.UUID
-	Market            market2.Spec
+	Market            market.Spec
 	DetectorCode      string
 	DetectorOptsLabel string
 	Time              int64
@@ -17,7 +17,7 @@ type Signal struct {
 	TakeProfitValue   int64
 	StopLossValue     int64
 	ExpectedReturnPPM int64
-	Extremes          []market2.Candle
+	Extremes          []market.Candle
 	Fingerprint       uuid.UUID
 	CreatedAt         int64
 }
