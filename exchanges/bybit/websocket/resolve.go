@@ -3,7 +3,7 @@ package websocket
 import (
 	"fmt"
 
-	"github.com/pulsoats/core/domain/market"
+	"github.com/pulsoats/core/market"
 )
 
 const (

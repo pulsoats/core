@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/pulsoats/core/domain/market"
+	market2 "github.com/pulsoats/core/market"
 )
 
 type DetectorKind string
@@ -24,7 +24,7 @@ type CandleDetector interface {
 	WindowSize() int
 	BarsForBuy() int
 	BarsForSell() int
-	Detect(ctx context.Context, window []market.Candle, fees market.TakerMakerFees) (Signal, bool, error)
+	Detect(ctx context.Context, window []market2.Candle, fees market2.TakerMakerFees) (Signal, bool, error)
 }
 
 type DetectorConfig struct {
@@ -43,9 +43,9 @@ func (d DetectorConfig) String() string {
 
 // DetectorMeta provides meta information about detector
 type DetectorMeta struct {
-	Code       string
-	Desc       string
-	Kind       DetectorKind
-	OptsSchema json.RawMessage
-	Version    string
+	Code        string
+	Description string
+	Kind        DetectorKind
+	OptsSchema  json.RawMessage
+	Version     string
 }

@@ -3,7 +3,7 @@ package specs
 import (
 	"slices"
 
-	"github.com/pulsoats/core/domain/market"
+	"github.com/pulsoats/core/market"
 )
 
 // SupportedIntervals содержит поддерживаемые интервалы Bybit и их строковые представления

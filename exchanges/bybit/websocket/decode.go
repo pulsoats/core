@@ -3,9 +3,9 @@ package websocket
 import (
 	"strconv"
 
-	"github.com/pulsoats/core/domain/market"
 	"github.com/pulsoats/core/lib/parse"
 	"github.com/pulsoats/core/lib/units"
+	"github.com/pulsoats/core/market"
 )
 
 func DecodeCandle(rawCandle RawCandle) (market.Candle, bool, error) {

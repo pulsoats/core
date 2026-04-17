@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pulsoats/core/domain/market"
 	"github.com/pulsoats/core/errorsx"
 	"github.com/pulsoats/core/exchanges/bybit/specs"
+	market2 "github.com/pulsoats/core/market"
 )
 
 type fees struct {
@@ -38,18 +38,18 @@ type feeRateResp struct {
 
 const bybitFeeRatePath = "/v5/account/fee-rate"
 
-func (r *Client) FeeRate(ctx context.Context, category market.Category, symbol, baseCoin string) (market.TakerMakerFees, error) {
+func (r *Client) FeeRate(ctx context.Context, category market2.Category, symbol, baseCoin string) (market2.TakerMakerFees, error) {
 	if r.client == nil {
 		r.client = http.DefaultClient
 	}
 
 	if r.apiKey == "" || r.apiSecret == "" {
-		return market.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate credentials: %w", errorsx.ErrUnauthorized)
+		return market2.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate credentials: %w", errorsx.ErrUnauthorized)
 	}
 
 	u, err := url.Parse(BybitV5URL)
 	if err != nil {
-		return market.TakerMakerFees{}, err
+		return market2.TakerMakerFees{}, err
 	}
 	u = u.JoinPath(bybitFeeRatePath)
 
@@ -65,12 +65,12 @@ func (r *Client) FeeRate(ctx context.Context, category market.Category, symbol, 
 	switch category {
 	case specs.CategoryOption:
 		if baseCoin == "" {
-			return market.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate option requires base coin: %w", errorsx.ErrRequired)
+			return market2.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate option requires base coin: %w", errorsx.ErrRequired)
 		}
 		q.Set("baseCoin", strings.ToUpper(baseCoin))
 	default:
 		if symbol == "" {
-			return market.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate requires symbol for category=%s: %w", category, errorsx.ErrRequired)
+			return market2.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate requires symbol for category=%s: %w", category, errorsx.ErrRequired)
 		}
 		q.Set("symbol", strings.ToUpper(symbol))
 	}
@@ -79,23 +79,23 @@ func (r *Client) FeeRate(ctx context.Context, category market.Category, symbol, 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return market.TakerMakerFees{}, err
+		return market2.TakerMakerFees{}, err
 	}
 
 	// payloadSuffix = query string
 	if err := setAuthHeaders(r.apiKey, r.apiSecret, u.RawQuery, time.Now(), req); err != nil {
-		return market.TakerMakerFees{}, err
+		return market2.TakerMakerFees{}, err
 	}
 
 	resp, err := r.client.Do(req)
 	if err != nil {
-		return market.TakerMakerFees{}, err
+		return market2.TakerMakerFees{}, err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return market.TakerMakerFees{}, errors.Join(
+		return market2.TakerMakerFees{}, errors.Join(
 			fmt.Errorf("bybit rest: fee-rate read response body: %w", errorsx.ErrInternal),
 			err,
 		)
@@ -103,13 +103,13 @@ func (r *Client) FeeRate(ctx context.Context, category market.Category, symbol, 
 
 	if resp.StatusCode != http.StatusOK {
 		r.log.Warn("fee-rate non-200 status", "status", resp.StatusCode, "body", string(body))
-		return market.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate status=%d body=%s: %w",
+		return market2.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate status=%d body=%s: %w",
 			resp.StatusCode, string(body), errorsx.ErrInternal)
 	}
 
 	var dto feeRateResp
 	if err := json.Unmarshal(body, &dto); err != nil {
-		return market.TakerMakerFees{}, errors.Join(
+		return market2.TakerMakerFees{}, errors.Join(
 			fmt.Errorf("bybit rest: fee-rate unmarshal response: %w", errorsx.ErrInternal),
 			err,
 		)
@@ -117,20 +117,20 @@ func (r *Client) FeeRate(ctx context.Context, category market.Category, symbol, 
 
 	if dto.RetCode != 0 {
 		r.log.Warn("fee-rate retCode", "code", dto.RetCode, "msg", dto.RetMsg)
-		return market.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate retCode=%d msg=%s: %w",
+		return market2.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate retCode=%d msg=%s: %w",
 			dto.RetCode, dto.RetMsg, errorsx.ErrInternal)
 	}
 
 	if len(dto.Result.List) == 0 {
 		r.log.Warn("fee-rate empty list", "category", category, "symbol", symbol, "baseCoin", baseCoin)
-		return market.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate list is empty: %w", errorsx.ErrNotFound)
+		return market2.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate list is empty: %w", errorsx.ErrNotFound)
 	}
 
 	f := dto.Result.List[0]
 
 	takerPPM, err := FeeStringToPPM(f.TakerFeeRate)
 	if err != nil {
-		return market.TakerMakerFees{}, errors.Join(
+		return market2.TakerMakerFees{}, errors.Join(
 			fmt.Errorf("bybit rest: fee-rate parse takerFeeRate: %w", errorsx.ErrInternal),
 			err,
 		)
@@ -138,13 +138,13 @@ func (r *Client) FeeRate(ctx context.Context, category market.Category, symbol, 
 
 	makerPPM, err := FeeStringToPPM(f.MakerFeeRate)
 	if err != nil {
-		return market.TakerMakerFees{}, errors.Join(
+		return market2.TakerMakerFees{}, errors.Join(
 			fmt.Errorf("bybit rest: fee-rate parse makerFeeRate: %w", errorsx.ErrInternal),
 			err,
 		)
 	}
 
-	return market.TakerMakerFees{
+	return market2.TakerMakerFees{
 		TakerFeeRate: takerPPM,
 		MakerFeeRate: makerPPM,
 	}, nil

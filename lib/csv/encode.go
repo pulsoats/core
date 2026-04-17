@@ -4,14 +4,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pulsoats/core/domain/detect"
-	"github.com/pulsoats/core/domain/market"
+	"github.com/pulsoats/core/detect"
 	"github.com/pulsoats/core/lib/format"
 	"github.com/pulsoats/core/lib/units"
+	"github.com/pulsoats/core/market"
 )
 
-// EncodeSignal преобразует сигнал домена в CSV-строку.
-// Формат соответствует тому, что ожидает DecodeSignal.
+// EncodeSignal преобразует detect.Signal в CSV-строку
 func EncodeSignal(sig detect.Signal) []string {
 	timeStr := time.UnixMilli(sig.Time).UTC().Format(time.RFC3339)
 
@@ -19,7 +18,12 @@ func EncodeSignal(sig detect.Signal) []string {
 
 	return []string{
 		sig.ID.String(),
+		sig.RunID.String(),
+		sig.Market.Exchange,
+		string(sig.Market.Category),
+		sig.Market.Symbol,
 		sig.DetectorCode,
+		sig.DetectorOptsLabel,
 		timeStr,
 
 		// деньги
@@ -30,6 +34,8 @@ func EncodeSignal(sig detect.Signal) []string {
 
 		// доля (не проценты и не ppm)
 		strconv.FormatFloat(profitability, 'f', -1, 64),
+		sig.Fingerprint.String(),
+		time.UnixMilli(sig.CreatedAt).Format(time.RFC3339),
 	}
 }
 

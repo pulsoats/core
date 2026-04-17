@@ -3,7 +3,7 @@ package w
 import (
 	"fmt"
 
-	"github.com/pulsoats/core/domain/detect"
+	"github.com/pulsoats/core/detect"
 )
 
 const code = "W"
@@ -49,9 +49,9 @@ func (d *Detector) BarsForBuy() int           { return d.opts.BarsForBuy }
 func (d *Detector) BarsForSell() int          { return d.opts.BarsForSell }
 
 var Meta = detect.DetectorMeta{
-	Code:       code,
-	Desc:       description,
-	Kind:       detect.DetectorKindCandle,
-	OptsSchema: optsSchema,
-	Version:    version,
+	Code:        code,
+	Description: description,
+	Kind:        detect.DetectorKindCandle,
+	OptsSchema:  optsSchema,
+	Version:     version,
 }

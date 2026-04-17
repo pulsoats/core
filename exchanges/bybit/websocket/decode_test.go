@@ -3,7 +3,7 @@ package websocket
 import (
 	"testing"
 
-	"github.com/pulsoats/core/domain/market"
+	"github.com/pulsoats/core/market"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

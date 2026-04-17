@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/pulsoats/core/domain/detect"
-	"github.com/pulsoats/core/domain/detect/detectors/w"
+	"github.com/pulsoats/core/detect"
+	"github.com/pulsoats/core/detect/detectors/w"
 	"github.com/pulsoats/core/errorsx"
 )
 
