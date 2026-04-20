@@ -2,12 +2,16 @@ package exchange
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/pulsoats/core/market"
 )
 
-// Meta describes static capabilities of a particular exchange implementation.
+// EnvFactory создаёт инстанс биржи, читая учётные данные из переменных окружения.
+type EnvFactory func(logger *slog.Logger) (API, error)
+
+// Meta описывает статические возможности конкретной реализации биржи.
 type Meta struct {
 	Code       string
 	Intervals  []market.Interval

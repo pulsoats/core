@@ -2,7 +2,9 @@ package bybit
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/pulsoats/core/exchange"
@@ -51,6 +53,16 @@ func (b *Bybit) Code() string {
 
 func (b *Bybit) Intervals() []market.Interval {
 	return append([]market.Interval(nil), supportedIntervals...)
+}
+
+// NewFromEnv создаёт клиент Bybit, читая BYBIT_API_KEY и BYBIT_API_SECRET из переменных окружения.
+func NewFromEnv(logger *slog.Logger) (exchange.API, error) {
+	key := os.Getenv("BYBIT_API_KEY")
+	secret := os.Getenv("BYBIT_API_SECRET")
+	if key == "" || secret == "" {
+		return nil, errors.New("BYBIT_API_KEY and BYBIT_API_SECRET are required")
+	}
+	return NewBybitClient(key, secret, logger), nil
 }
 
 func NewBybitClient(apiKey, secret string, logger *slog.Logger) *Bybit {
