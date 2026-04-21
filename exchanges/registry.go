@@ -48,6 +48,22 @@ func (r *Registry) NewPublic(code string) (exchange.Client, error) {
 	return r.new(code, false)
 }
 
+func (r *Registry) CreateAllPublic(logger *slog.Logger) (map[string]exchange.Client, error) {
+	if logger == nil {
+		logger = slog.Default()
+	}
+
+	out := make(map[string]exchange.Client, len(r.factories))
+	for k, f := range r.factories {
+		client, err := f(logger, false)
+		if err != nil {
+			return nil, fmt.Errorf("create all public: %w", err)
+		}
+		out[k] = client
+	}
+
+	return out, nil
+}
 func (r *Registry) new(code string, auth bool) (exchange.Client, error) {
 	factory, ok := r.factories[code]
 	if !ok {
