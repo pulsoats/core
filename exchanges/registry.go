@@ -12,7 +12,7 @@ import (
 var ErrExchangeNotFound = fmt.Errorf("exchange %w", errorsx.ErrNotFound)
 
 type Registry struct {
-	factories map[string]exchange.EnvFactory
+	factories map[string]exchange.Factory
 	logger    *slog.Logger
 }
 
@@ -21,29 +21,42 @@ func NewRegistry(logger *slog.Logger) *Registry {
 	if logger == nil {
 		logger = slog.Default()
 	}
+
 	r := &Registry{
-		factories: make(map[string]exchange.EnvFactory),
+		factories: make(map[string]exchange.Factory),
 		logger:    logger.With("component", "exchange.registry"),
 	}
-	r.Register(bybit.Code, bybit.NewFromEnv)
+
+	r.register(bybit.Code, func(l *slog.Logger, auth bool) (exchange.Client, error) {
+		return bybit.NewClient(l, auth)
+	})
 	return r
 }
 
 // Register регистрирует фабрику для указанного кода биржи.
-func (r *Registry) Register(code string, factory exchange.EnvFactory) {
+func (r *Registry) register(code string, factory exchange.Factory) {
 	r.factories[code] = factory
 }
 
-// NewFromEnv создаёт инстанс биржи по коду, читая учётные данные из переменных окружения.
-func (r *Registry) NewFromEnv(code string) (exchange.API, error) {
+// NewFromEnv создаёт клиент биржи по коду с авторизацией, читая учётные данные из переменных окружения.
+func (r *Registry) NewFromEnv(code string) (exchange.Client, error) {
+	return r.new(code, true)
+}
+
+// NewPublic создаёт публичный клиент биржи по коду без авторизации.
+func (r *Registry) NewPublic(code string) (exchange.Client, error) {
+	return r.new(code, false)
+}
+
+func (r *Registry) new(code string, auth bool) (exchange.Client, error) {
 	factory, ok := r.factories[code]
 	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrExchangeNotFound, code)
 	}
-	api, err := factory(r.logger)
+	client, err := factory(r.logger, auth)
 	if err != nil {
 		return nil, fmt.Errorf("exchange %s: %w", code, err)
 	}
-	r.logger.Debug("exchange created", "code", code)
-	return api, nil
+	r.logger.Debug("exchange created", "code", code, "auth", auth)
+	return client, nil
 }

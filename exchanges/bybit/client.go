@@ -56,13 +56,21 @@ func (b *Bybit) Intervals() []market.Interval {
 }
 
 // NewFromEnv создаёт клиент Bybit, читая BYBIT_API_KEY и BYBIT_API_SECRET из переменных окружения.
-func NewFromEnv(logger *slog.Logger) (exchange.API, error) {
+func NewFromEnv(logger *slog.Logger) (*Bybit, error) {
 	key := os.Getenv("BYBIT_API_KEY")
 	secret := os.Getenv("BYBIT_API_SECRET")
 	if key == "" || secret == "" {
 		return nil, errors.New("BYBIT_API_KEY and BYBIT_API_SECRET are required")
 	}
 	return NewBybitClient(key, secret, logger), nil
+}
+
+// NewClient создаёт клиент Bybit. При auth=true читает ключи из env, иначе создаёт публичный клиент.
+func NewClient(logger *slog.Logger, auth bool) (*Bybit, error) {
+	if auth {
+		return NewFromEnv(logger)
+	}
+	return NewBybitClient("", "", logger), nil
 }
 
 func NewBybitClient(apiKey, secret string, logger *slog.Logger) *Bybit {
