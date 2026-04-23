@@ -9,8 +9,6 @@ import (
 	"github.com/pulsoats/core/exchanges/bybit"
 )
 
-var ErrExchangeNotFound = fmt.Errorf("exchange %w", errorsx.ErrNotFound)
-
 type Registry struct {
 	factories map[string]exchange.Factory
 	logger    *slog.Logger
@@ -67,7 +65,7 @@ func (r *Registry) CreateAllPublic(logger *slog.Logger) (map[string]exchange.Cli
 func (r *Registry) new(code string, auth bool) (exchange.Client, error) {
 	factory, ok := r.factories[code]
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrExchangeNotFound, code)
+		return nil, fmt.Errorf("exchange %s: %w", code, errorsx.ErrNotFound)
 	}
 	client, err := factory(r.logger, auth)
 	if err != nil {
