@@ -14,6 +14,7 @@ type Base struct {
 	Market          market.Spec
 	Interval        market.Interval
 	Detector        detect.DetectorConfig
+	SignalsCount    int64
 	FirstCandleTime time.Time
 	LastCandleTime  time.Time
 	CreatedAt       time.Time
