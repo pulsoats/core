@@ -87,15 +87,15 @@ func (b *Bybit) Candles(ctx context.Context, spec market.Spec, interval market.I
 	return b.rest.Candles(ctx, spec, interval, from, to)
 }
 
-func (b *Bybit) FeeRate(ctx context.Context, category market.Category, symbol, baseCoin string) (market.TakerMakerFees, error) {
+func (b *Bybit) FeeRate(ctx context.Context, category string, symbol, baseCoin string) (market.TakerMakerFees, error) {
 	return b.rest.FeeRate(ctx, category, symbol, baseCoin)
 }
 
-func (b *Bybit) DefaultFees(category market.Category) (market.TakerMakerFees, error) {
+func (b *Bybit) DefaultFees(category string) (market.TakerMakerFees, error) {
 	return specs.DefaultFees(category)
 }
 
-func (b *Bybit) InstrumentExists(ctx context.Context, category market.Category, symbol string) (bool, error) {
+func (b *Bybit) InstrumentExists(ctx context.Context, category string, symbol string) (bool, error) {
 	return b.rest.InstrumentExists(ctx, category, symbol)
 }
 

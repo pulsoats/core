@@ -38,7 +38,7 @@ type feeRateResp struct {
 
 const bybitFeeRatePath = "/v5/account/fee-rate"
 
-func (r *Client) FeeRate(ctx context.Context, category market.Category, symbol, baseCoin string) (market.TakerMakerFees, error) {
+func (r *Client) FeeRate(ctx context.Context, category string, symbol, baseCoin string) (market.TakerMakerFees, error) {
 	if r.client == nil {
 		r.client = http.DefaultClient
 	}
@@ -60,7 +60,7 @@ func (r *Client) FeeRate(ctx context.Context, category market.Category, symbol, 
 	)
 
 	q := url.Values{}
-	q.Set("category", string(category))
+	q.Set("category", category)
 
 	switch category {
 	case specs.CategoryOption:

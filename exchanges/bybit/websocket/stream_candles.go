@@ -18,7 +18,7 @@ import (
 // categoryMaxTopics returns the max number of topics per WebSocket connection for a category.
 // 0 means no limit.
 // Options: 2000 topics per connection (Bybit docs).
-func categoryMaxTopics(cat market.Category) int {
+func categoryMaxTopics(cat string) int {
 	if cat == specs.CategoryOption {
 		return 2000
 	}

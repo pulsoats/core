@@ -2,8 +2,6 @@ package websocket
 
 import (
 	"fmt"
-
-	"github.com/pulsoats/core/market"
 )
 
 const (
@@ -18,14 +16,14 @@ const (
 	scopeTrade   scope = "trade"
 )
 
-func resolveURL(scope scope, category market.Category) (string, error) {
+func resolveURL(scope scope, category string) (string, error) {
 	host := mainnetURL
 	switch scope {
 	case scopePublic:
 		if category == "" {
 			return "", fmt.Errorf("public requires category")
 		}
-		return host + "public/" + string(category), nil
+		return host + "public/" + category, nil
 	case scopePrivate:
 		return host + "private", nil
 	case scopeTrade:

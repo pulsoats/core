@@ -1,17 +1,13 @@
 package specs
 
-import (
-	"github.com/pulsoats/core/market"
-)
-
 const (
-	CategorySpot    market.Category = "spot"
-	CategoryLinear  market.Category = "linear"
-	CategoryInverse market.Category = "inverse"
-	CategoryOption  market.Category = "option"
+	CategorySpot    = "spot"
+	CategoryLinear  = "linear"
+	CategoryInverse = "inverse"
+	CategoryOption  = "option"
 )
 
-func IsSupportedCategory(v market.Category) bool {
+func IsSupportedCategory(v string) bool {
 	switch v {
 	case CategorySpot, CategoryLinear, CategoryInverse, CategoryOption:
 		return true
@@ -20,6 +16,6 @@ func IsSupportedCategory(v market.Category) bool {
 	}
 }
 
-func ListCategories() []market.Category {
-	return []market.Category{CategorySpot, CategoryLinear, CategoryInverse, CategoryOption}
+func ListCategories() []string {
+	return []string{CategorySpot, CategoryLinear, CategoryInverse, CategoryOption}
 }

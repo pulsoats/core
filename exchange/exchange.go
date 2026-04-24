@@ -15,7 +15,7 @@ type Factory func(logger *slog.Logger, auth bool) (Client, error)
 type Meta struct {
 	Code       string
 	Intervals  []market.Interval
-	Categories []market.Category
+	Categories []string
 }
 
 // PublicClient описывает публичные методы биржи, не требующие авторизации.
@@ -23,13 +23,13 @@ type PublicClient interface {
 	Meta() Meta
 	Code() string
 	Candles(ctx context.Context, spec market.Spec, interval market.Interval, from time.Time, to time.Time) ([]market.Candle, error)
-	DefaultFees(category market.Category) (market.TakerMakerFees, error)
+	DefaultFees(category string) (market.TakerMakerFees, error)
 	StreamCandles(ctx context.Context, spec market.Spec, interval market.Interval, confirmedOnly bool) (chan market.Candle, <-chan error, error)
-	InstrumentExists(ctx context.Context, category market.Category, symbol string) (bool, error)
+	InstrumentExists(ctx context.Context, category string, symbol string) (bool, error)
 }
 
 // Client описывает полный набор методов биржи, включая приватные.
 type Client interface {
 	PublicClient
-	FeeRate(ctx context.Context, category market.Category, symbol, baseCoin string) (market.TakerMakerFees, error)
+	FeeRate(ctx context.Context, category string, symbol, baseCoin string) (market.TakerMakerFees, error)
 }

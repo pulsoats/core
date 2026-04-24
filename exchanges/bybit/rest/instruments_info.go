@@ -8,13 +8,11 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/pulsoats/core/market"
 )
 
 const bybitInstrumentsInfoPath = "/v5/market/instruments-info"
 
-func (r *Client) InstrumentExists(ctx context.Context, category market.Category, symbol string) (bool, error) {
+func (r *Client) InstrumentExists(ctx context.Context, category string, symbol string) (bool, error) {
 	if r.client == nil {
 		r.client = http.DefaultClient
 	}
@@ -31,7 +29,7 @@ func (r *Client) InstrumentExists(ctx context.Context, category market.Category,
 	u = u.JoinPath(bybitInstrumentsInfoPath)
 
 	q := url.Values{}
-	q.Set("category", string(category))
+	q.Set("category", category)
 	q.Set("symbol", symbol)
 	u.RawQuery = q.Encode()
 

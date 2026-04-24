@@ -8,7 +8,7 @@ import (
 )
 
 // DefaultFees возвращает дефолтные комиссии из документации Bybit без запроса к бирже.
-func DefaultFees(category market.Category) (market.TakerMakerFees, error) {
+func DefaultFees(category string) (market.TakerMakerFees, error) {
 	switch category {
 	case CategorySpot:
 		return market.TakerMakerFees{TakerFeeRate: 1000, MakerFeeRate: 1000}, nil
