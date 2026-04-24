@@ -10,6 +10,16 @@ const (
 	StatusCodeFailed
 )
 
+func ParseStatusCode(code int) (StatusCode, bool) {
+	sc := StatusCode(code)
+	switch sc {
+	case StatusCodeUnspecified, StatusCodePending, StatusCodeRunning, StatusCodeDone, StatusCodeFailed:
+		return sc, true
+	default:
+		return StatusCodeUnspecified, false
+	}
+}
+
 const (
 	StatusMessageUnspecified = "unspecified"
 	StatusMessagePending     = "pending"
