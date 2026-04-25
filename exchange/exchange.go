@@ -14,7 +14,7 @@ type Factory func(logger *slog.Logger, auth bool) (Client, error)
 // Meta описывает статические возможности конкретной реализации биржи.
 type Meta struct {
 	Code       string
-	Intervals  []market.Interval
+	Intervals  []string
 	Categories []string
 }
 

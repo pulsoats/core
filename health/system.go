@@ -5,8 +5,8 @@ import "time"
 type ServiceStatus int
 
 const (
-	ServiceStatusHealthy = iota
-	ServiceStatusDegraded
+	ServiceStatusHealthy  ServiceStatus = iota
+	ServiceStatusDegraded ServiceStatus = iota
 )
 
 type ServiceInfo struct {

@@ -22,22 +22,6 @@ var Metadata = exchange.Meta{
 	Categories: specs.ListCategories(),
 }
 
-var supportedIntervals = []market.Interval{
-	market.Interval1m,
-	market.Interval3m,
-	market.Interval5m,
-	market.Interval15m,
-	market.Interval30m,
-	market.Interval1h,
-	market.Interval2h,
-	market.Interval4h,
-	market.Interval6h,
-	market.Interval12h,
-	market.Interval1d,
-	market.Interval1w,
-	market.Interval1M,
-}
-
 type Bybit struct {
 	rest *rest.Client
 	ws   *websocket.Client
@@ -49,10 +33,6 @@ func (b *Bybit) Meta() exchange.Meta {
 
 func (b *Bybit) Code() string {
 	return Code
-}
-
-func (b *Bybit) Intervals() []market.Interval {
-	return append([]market.Interval(nil), supportedIntervals...)
 }
 
 // NewFromEnv создаёт клиент Bybit, читая BYBIT_API_KEY и BYBIT_API_SECRET из переменных окружения.

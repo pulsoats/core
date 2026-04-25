@@ -23,12 +23,17 @@ var SupportedIntervals = map[market.Interval]string{
 	market.Interval1M:  "M",
 }
 
-// ListIntervals возвращает слайс интервалов в ASC порядке
-func ListIntervals() []market.Interval {
-	res := make([]market.Interval, 0, len(SupportedIntervals))
-	for k, _ := range SupportedIntervals {
-		res = append(res, k)
+// ListIntervals возвращает слайс строковых представлений интервалов в ASC порядке.
+func ListIntervals() []string {
+	keys := make([]market.Interval, 0, len(SupportedIntervals))
+	for k := range SupportedIntervals {
+		keys = append(keys, k)
 	}
-	slices.Sort(res)
+	slices.Sort(keys)
+
+	res := make([]string, 0, len(keys))
+	for _, k := range keys {
+		res = append(res, k.String())
+	}
 	return res
 }
