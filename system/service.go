@@ -1,6 +1,13 @@
-package health
+package system
 
 import "time"
+
+type ServiceKind string
+
+const (
+	ServiceKindAnalysis = "analysis"
+	ServiceKindLive     = "live"
+)
 
 type ServiceStatus int
 
@@ -11,6 +18,7 @@ const (
 
 type ServiceInfo struct {
 	ID       string
+	Kind     ServiceKind
 	Name     string
 	Exchange string
 	Account  string
