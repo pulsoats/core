@@ -1,6 +1,10 @@
 package system
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type ServiceKind string
 
@@ -17,7 +21,7 @@ const (
 )
 
 type ServiceInfo struct {
-	ID       string
+	ID       uuid.UUID
 	Kind     ServiceKind
 	Name     string
 	Exchange string
@@ -26,7 +30,7 @@ type ServiceInfo struct {
 }
 
 type ServiceMetrics struct {
-	ServiceID     string
+	ServiceID     uuid.UUID
 	Status        ServiceStatus
 	CpuPercent    float64
 	MemoryPercent float64
