@@ -42,16 +42,16 @@ func (r *Registry) NewFromEnv(code string) (exchange.Client, error) {
 }
 
 // NewPublic создаёт публичный клиент биржи по коду без авторизации.
-func (r *Registry) NewPublic(code string) (exchange.Client, error) {
+func (r *Registry) NewPublic(code string) (exchange.PublicClient, error) {
 	return r.new(code, false)
 }
 
-func (r *Registry) CreateAllPublic(logger *slog.Logger) (map[string]exchange.Client, error) {
+func (r *Registry) CreateAllPublic(logger *slog.Logger) (map[string]exchange.PublicClient, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
 
-	out := make(map[string]exchange.Client, len(r.factories))
+	out := make(map[string]exchange.PublicClient, len(r.factories))
 	for k, f := range r.factories {
 		client, err := f(logger, false)
 		if err != nil {
