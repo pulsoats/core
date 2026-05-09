@@ -8,7 +8,7 @@ import (
 
 const code = "W"
 const description = `Детектор паттерна "Двойное дно" (W)`
-const version = "0.1.0-beta.2"
+const version = "0.1.0-beta.3"
 
 type Detector struct {
 	optsLabel string

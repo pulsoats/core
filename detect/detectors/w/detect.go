@@ -212,32 +212,11 @@ func findLocalMins(ctx context.Context, window []market.Candle) ([]int, error) {
 	}
 
 	// 2) последняя точка как кандидат правого лок минимума:
-	// будет учтена только если меньше всех точек, начиная с левого локального минимума
+	// будет учтена только если меньше предыдущей точки
 	last := n - 1
-	if len(localMinsIdxs) > 0 {
-		prevMinIdx := localMinsIdxs[len(localMinsIdxs)-1]
 
-		// нужна хотя бы одна свеча "между" prevMinIdx и last, иначе это просто сосед
-		if last-prevMinIdx >= 2 {
-			lastClose := window[last].Close
-			ok := true
-
-			// проверяем только участок между prevMinIdx и last (не включая их)
-			for i := prevMinIdx + 1; i < last; i++ {
-				if err := ctx.Err(); err != nil {
-					return nil, err
-				}
-				// правило: lastClose должен быть ниже любых свечей по close справа от prevMinIdx
-				if window[i].Close <= lastClose {
-					ok = false
-					break
-				}
-			}
-
-			if ok {
-				localMinsIdxs = append(localMinsIdxs, last)
-			}
-		}
+	if window[last].Close < window[last-1].Close {
+		localMinsIdxs = append(localMinsIdxs, last)
 	}
 
 	if len(localMinsIdxs) < 2 {
