@@ -130,37 +130,39 @@ func (d *Detector) Detect(ctx context.Context, window []market.Candle, fees mark
 	}
 
 	// 7) Объемы
-	if len(window) >= 7 {
-		var sum int64
-		start := len(window) - 2
-		end := len(window) - 7
+	if d.opts.VolumeCVThreshold != 0 && d.opts.VolumeSpikeMultiplier != 0 {
+		if len(window) >= 7 {
+			var sum int64
+			start := len(window) - 2
+			end := len(window) - 7
 
-		stdData := make([]int64, 0, 6)
-		for i := start; i >= end; i-- {
-			sum += window[i].Volume
-			stdData = append(stdData, window[i].Volume)
-		}
+			stdData := make([]int64, 0, 6)
+			for i := start; i >= end; i-- {
+				sum += window[i].Volume
+				stdData = append(stdData, window[i].Volume)
+			}
 
-		// средний объем за 6 свечей перед сигнальной
-		avgVol6 := sum / 6
-		if avgVol6 == 0 {
-			return zero, false, nil
-		}
+			// средний объем за 6 свечей перед сигнальной
+			avgVol6 := sum / 6
+			if avgVol6 == 0 {
+				return zero, false, nil
+			}
 
-		// стандартное отклонение по тем же 6 свечам
-		stdVol6 := standardDeviation(stdData)
+			// стандартное отклонение по тем же 6 свечам
+			stdVol6 := standardDeviation(stdData)
 
-		// последняя свеча перед сигналом
-		lastVol := window[len(window)-2].Volume
+			// последняя свеча перед сигналом
+			lastVol := window[len(window)-2].Volume
 
-		// все коэффициенты в PPM
-		noSpike := lastVol < (avgVol6*opts.VolumeSpikeMultiplier)/units.PPM
-		volCV := (stdVol6 * units.PPM) / avgVol6
-		stableVolume := volCV < opts.VolumeCVThreshold
+			// все коэффициенты в PPM
+			noSpike := lastVol < (avgVol6*opts.VolumeSpikeMultiplier)/units.PPM
+			volCV := (stdVol6 * units.PPM) / avgVol6
+			stableVolume := volCV < opts.VolumeCVThreshold
 
-		// отбрасываем плохой сигнал
-		if !noSpike || !stableVolume {
-			return zero, false, nil
+			// отбрасываем плохой сигнал
+			if !noSpike || !stableVolume {
+				return zero, false, nil
+			}
 		}
 	}
 
