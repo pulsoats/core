@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/pulsoats/core/exchange"
@@ -35,20 +34,13 @@ func (b *Bybit) Code() string {
 	return Code
 }
 
-// NewFromEnv создаёт клиент Bybit, читая BYBIT_API_KEY и BYBIT_API_SECRET из переменных окружения.
-func NewFromEnv(logger *slog.Logger) (*Bybit, error) {
-	key := os.Getenv("BYBIT_API_KEY")
-	secret := os.Getenv("BYBIT_API_SECRET")
-	if key == "" || secret == "" {
-		return nil, errors.New("BYBIT_API_KEY and BYBIT_API_SECRET are required")
-	}
-	return NewBybitClient(key, secret, logger), nil
-}
-
-// NewClient создаёт клиент Bybit. При auth=true читает ключи из env, иначе создаёт публичный клиент.
-func NewClient(logger *slog.Logger, auth bool) (*Bybit, error) {
-	if auth {
-		return NewFromEnv(logger)
+// NewClient создаёт клиент Bybit. Если creds == nil, создаётся публичный клиент без авторизации.
+func NewClient(logger *slog.Logger, creds *exchange.Credentials) (*Bybit, error) {
+	if creds != nil {
+		if creds.APIKey == "" || creds.APISecret == "" {
+			return nil, errors.New("bybit: api_key and api_secret are required")
+		}
+		return NewBybitClient(creds.APIKey, creds.APISecret, logger), nil
 	}
 	return NewBybitClient("", "", logger), nil
 }

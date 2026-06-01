@@ -25,8 +25,8 @@ func NewRegistry(logger *slog.Logger) *Registry {
 		logger:    logger.With("component", "exchange.registry"),
 	}
 
-	r.register(bybit.Code, func(l *slog.Logger, auth bool) (exchange.Client, error) {
-		return bybit.NewClient(l, auth)
+	r.register(bybit.Code, func(l *slog.Logger, creds *exchange.Credentials) (exchange.Client, error) {
+		return bybit.NewClient(l, creds)
 	})
 	return r
 }
@@ -36,14 +36,14 @@ func (r *Registry) register(code string, factory exchange.Factory) {
 	r.factories[code] = factory
 }
 
-// NewFromEnv создаёт клиент биржи по коду с авторизацией, читая учётные данные из переменных окружения.
-func (r *Registry) NewFromEnv(code string) (exchange.Client, error) {
-	return r.new(code, true)
+// New создаёт авторизованный клиент биржи по коду с переданными учётными данными.
+func (r *Registry) New(code string, creds *exchange.Credentials) (exchange.Client, error) {
+	return r.new(code, creds)
 }
 
 // NewPublic создаёт публичный клиент биржи по коду без авторизации.
 func (r *Registry) NewPublic(code string) (exchange.PublicClient, error) {
-	return r.new(code, false)
+	return r.new(code, nil)
 }
 
 func (r *Registry) CreateAllPublic(logger *slog.Logger) (map[string]exchange.PublicClient, error) {
@@ -53,7 +53,7 @@ func (r *Registry) CreateAllPublic(logger *slog.Logger) (map[string]exchange.Pub
 
 	out := make(map[string]exchange.PublicClient, len(r.factories))
 	for k, f := range r.factories {
-		client, err := f(logger, false)
+		client, err := f(logger, nil)
 		if err != nil {
 			return nil, fmt.Errorf("create all public: %w", err)
 		}
@@ -62,15 +62,16 @@ func (r *Registry) CreateAllPublic(logger *slog.Logger) (map[string]exchange.Pub
 
 	return out, nil
 }
-func (r *Registry) new(code string, auth bool) (exchange.Client, error) {
+
+func (r *Registry) new(code string, creds *exchange.Credentials) (exchange.Client, error) {
 	factory, ok := r.factories[code]
 	if !ok {
 		return nil, fmt.Errorf("exchange %s: %w", code, errorsx.ErrNotFound)
 	}
-	client, err := factory(r.logger, auth)
+	client, err := factory(r.logger, creds)
 	if err != nil {
 		return nil, fmt.Errorf("exchange %s: %w", code, err)
 	}
-	r.logger.Debug("exchange created", "code", code, "auth", auth)
+	r.logger.Debug("exchange created", "code", code, "auth", creds != nil)
 	return client, nil
 }

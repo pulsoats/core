@@ -8,8 +8,15 @@ import (
 	"github.com/pulsoats/core/market"
 )
 
-// Factory создаёт клиент биржи, читая учётные данные из переменных окружения.
-type Factory func(logger *slog.Logger, auth bool) (Client, error)
+// Credentials содержит учётные данные для авторизации на бирже.
+type Credentials struct {
+	APIKey     string
+	APISecret  string
+	Passphrase string // опционально, используется на OKX и др.
+}
+
+// Factory создаёт клиент биржи. Если creds == nil, создаётся публичный клиент без авторизации.
+type Factory func(logger *slog.Logger, creds *Credentials) (Client, error)
 
 // Meta описывает статические возможности конкретной реализации биржи.
 type Meta struct {
