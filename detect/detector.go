@@ -29,6 +29,7 @@ type CandleDetector interface {
 
 type DetectorConfig struct {
 	Code      string
+	Version   string
 	OptsLabel string
 	Opts      json.RawMessage
 }
