@@ -277,7 +277,7 @@ Router.pending  map[string]*pendingReq
       reqID  string       // UUID без дефисов (≤32 символа)
       op     Op           // OpSubscribe | OpUnsubscribe
       topics []string     // топики этого запроса
-      sentAt time.Time    // для TTL cleaner
+      sentAt time.CandleTime    // для TTL cleaner
   }
 ```
 

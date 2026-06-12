@@ -16,22 +16,23 @@ func CreateHeaders(v any) []string {
 	for i := 0; i < t.NumField(); i++ {
 		sf := t.Field(i)
 
-		tag := sf.Tag.Get("csv")
-		name, mods, _ := strings.Cut(tag, ",") // часть до запятой — имя, после — моды
-		name = strings.TrimSpace(name)
-		mods = strings.ReplaceAll(strings.TrimSpace(mods), " ", "") // " price, ppm" -> "price,ppm"
-
-		// если тега нет — берём имя поля
-		if name == "" {
-			name = sf.Name
+		// пропустить неэкспортируемые поля — их значение всё равно не прочитать
+		if sf.PkgPath != "" {
+			continue
 		}
 
-		// пропустить поле, если указан модификатор omit
-		if mods != "" {
-			m := "," + mods + ","
-			if strings.Contains(m, ",omit,") {
-				continue
-			}
+		tag := sf.Tag.Get("csv")
+		name, _, _ := strings.Cut(tag, ",") // часть до запятой — имя, после — моды
+		name = strings.TrimSpace(name)
+
+		// пропустить поле, если имя — "-"
+		if name == "-" {
+			continue
+		}
+
+		// если имя в теге не задано — берём имя поля
+		if name == "" {
+			name = sf.Name
 		}
 
 		headers = append(headers, name)

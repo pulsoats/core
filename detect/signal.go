@@ -13,8 +13,8 @@ type Signal struct {
 	DetectorCode      string
 	DetectorVersion   string
 	DetectorOptsLabel string
-	Time              int64
-	Value             int64
+	CandleTime        int64
+	CandleValue       int64
 	BuyValue          int64
 	TakeProfitValue   int64
 	StopLossValue     int64
