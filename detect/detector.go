@@ -45,8 +45,8 @@ func (d DetectorConfig) String() string {
 // DetectorMeta provides meta information about detector
 type DetectorMeta struct {
 	Code        string
-	Description string
-	Kind        DetectorKind
-	OptsSchema  json.RawMessage
 	Version     string
+	Kind        DetectorKind
+	Description string
+	OptsSchema  json.RawMessage
 }

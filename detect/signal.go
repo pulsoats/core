@@ -9,6 +9,7 @@ type Signal struct {
 	ID                uuid.UUID
 	RunID             uuid.UUID
 	Market            market.Spec
+	Interval          market.Interval
 	DetectorCode      string
 	DetectorVersion   string
 	DetectorOptsLabel string
