@@ -33,7 +33,7 @@ type feeRateResp struct {
 		Cursor string `json:"nextPageCursor"`
 	} `json:"result"`
 	RetExtInfo any    `json:"retExtInfo"`
-	Time       string `json:"time"`
+	Time       int64  `json:"time"`
 }
 
 const bybitFeeRatePath = "/v5/account/fee-rate"
