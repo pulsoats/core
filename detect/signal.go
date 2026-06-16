@@ -19,7 +19,7 @@ type Signal struct {
 	TakeProfitValue   int64
 	StopLossValue     int64
 	ExpectedReturnPPM int64
-	Extremes          []market.Candle
+	Extremes          []market.Candle `csv:"-"`
 	Fingerprint       uuid.UUID `csv:"-"`
 	CreatedAt         int64
 }

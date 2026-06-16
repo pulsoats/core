@@ -24,6 +24,7 @@ func EncodeSignal(sig detect.Signal) []string {
 		sig.Market.Symbol,
 		sig.Interval.String(),
 		sig.DetectorCode,
+		sig.DetectorVersion,
 		sig.DetectorOptsLabel,
 		timeStr,
 

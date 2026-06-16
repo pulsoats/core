@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+var SignalHeader = []string{}
+
 var timeType = reflect.TypeOf(time.Time{})
 
 // CreateHeaders - создание заголовка по тегам/названиям полей в структуре.
@@ -37,8 +39,8 @@ func headersOf(t reflect.Type) []string {
 			continue
 		}
 
-		// анонимная встроенная структура без явного имени → разворачиваем её поля
-		if sf.Anonymous && name == "" {
+		// структура без явного имени → разворачиваем её поля
+		if name == "" {
 			ft := sf.Type
 			for ft.Kind() == reflect.Ptr {
 				ft = ft.Elem()
