@@ -11,7 +11,7 @@ import (
 )
 
 // EncodeSignal преобразует detect.Signal в CSV-строку
-func EncodeSignal(sig detect.Signal) []string {
+func EncodeSignal(sig detect.Signal, spec market.Spec, interval market.Interval) []string {
 	timeStr := time.UnixMilli(sig.CandleTime).UTC().Format(time.RFC3339)
 
 	profitability := float64(sig.ExpectedReturnPPM) / 1_000_000
@@ -19,10 +19,10 @@ func EncodeSignal(sig detect.Signal) []string {
 	return []string{
 		sig.ID.String(),
 		sig.RunID.String(),
-		sig.Market.Exchange,
-		sig.Market.Category,
-		sig.Market.Symbol,
-		sig.Interval.String(),
+		spec.Exchange,
+		spec.Category,
+		spec.Symbol,
+		interval.String(),
 		sig.DetectorCode,
 		sig.DetectorVersion,
 		sig.DetectorOptsLabel,

@@ -8,8 +8,6 @@ import (
 type Signal struct {
 	ID                uuid.UUID
 	RunID             uuid.UUID
-	Market            market.Spec
-	Interval          market.Interval
 	DetectorCode      string
 	DetectorVersion   string
 	DetectorOptsLabel string
@@ -20,6 +18,6 @@ type Signal struct {
 	StopLossValue     int64
 	ExpectedReturnPPM int64
 	Extremes          []market.Candle `csv:"-"`
-	Fingerprint       uuid.UUID `csv:"-"`
+	Fingerprint       uuid.UUID       `csv:"-"`
 	CreatedAt         int64
 }
