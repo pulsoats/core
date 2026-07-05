@@ -18,6 +18,6 @@ type Signal struct {
 	TakeProfitValue   int64
 	StopLossValue     int64
 	ExpectedReturnPPM int64
-	Metadata          map[string]any `csv:"-"`
+	Metadata          map[string]string `csv:"-"`
 	CreatedAt         time.Time
 }
