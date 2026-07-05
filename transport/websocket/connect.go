@@ -97,8 +97,7 @@ func (s *Stream) Connect(ctx context.Context) (chan json.RawMessage, error) {
 				for {
 					var msg json.RawMessage
 					if err := wsjson.Read(cctx, c, &msg); err != nil {
-						var closeErr *websocket.CloseError
-						if errors.As(err, &closeErr) {
+						if closeErr, ok := errors.AsType[*websocket.CloseError](err); ok {
 							s.log.Info("websocket closed by server",
 								"code", closeErr.Code,
 								"reason", closeErr.Reason,
@@ -260,8 +259,7 @@ func normalCloseErr(err error) bool {
 	if errors.Is(err, net.ErrClosed) {
 		return true
 	}
-	var closeErr *websocket.CloseError
-	if errors.As(err, &closeErr) {
+	if _, ok := errors.AsType[*websocket.CloseError](err); ok {
 		return true
 	}
 	if strings.Contains(err.Error(), "use of closed network connection") {

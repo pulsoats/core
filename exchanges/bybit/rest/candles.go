@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pulsoats/core/errorsx"
@@ -69,7 +70,7 @@ func (r *Client) Candles(ctx context.Context, spec market.Spec, interval market.
 		}
 
 		v := url.Values{}
-		v.Set("category", string(spec.Category))
+		v.Set("category", strings.ToLower(spec.Category))
 		v.Set("symbol", spec.Symbol)
 		v.Set("interval", intervalStr)
 		v.Set("start", strconv.FormatInt(start.UnixMilli(), 10))
@@ -79,7 +80,7 @@ func (r *Client) Candles(ctx context.Context, spec market.Spec, interval market.
 
 		r.log.Debug("rest candles request",
 			"symbol", spec.Symbol,
-			"category", spec.Category,
+			"category", strings.ToLower(spec.Category),
 			"interval", interval,
 			"start", start,
 			"end", end,

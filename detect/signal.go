@@ -1,8 +1,9 @@
 package detect
 
 import (
+	"time"
+
 	"github.com/google/uuid"
-	"github.com/pulsoats/core/market"
 )
 
 type Signal struct {
@@ -11,13 +12,12 @@ type Signal struct {
 	DetectorCode      string
 	DetectorVersion   string
 	DetectorOptsLabel string
-	CandleTime        int64
+	CandleTime        time.Time
 	CandleValue       int64
 	BuyValue          int64
 	TakeProfitValue   int64
 	StopLossValue     int64
 	ExpectedReturnPPM int64
-	Extremes          []market.Candle `csv:"-"`
-	Fingerprint       uuid.UUID       `csv:"-"`
-	CreatedAt         int64
+	Metadata          map[string]any `csv:"-"`
+	CreatedAt         time.Time
 }

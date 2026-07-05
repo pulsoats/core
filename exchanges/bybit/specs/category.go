@@ -1,15 +1,13 @@
 package specs
 
 const (
-	CategorySpot    = "spot"
-	CategoryLinear  = "linear"
-	CategoryInverse = "inverse"
-	CategoryOption  = "option"
+	CategorySpot   = "Spot"
+	CategoryLinear = "Linear"
 )
 
 func IsSupportedCategory(v string) bool {
 	switch v {
-	case CategorySpot, CategoryLinear, CategoryInverse, CategoryOption:
+	case CategorySpot, CategoryLinear:
 		return true
 	default:
 		return false
@@ -17,5 +15,5 @@ func IsSupportedCategory(v string) bool {
 }
 
 func ListCategories() []string {
-	return []string{CategorySpot, CategoryLinear, CategoryInverse, CategoryOption}
+	return []string{CategorySpot, CategoryLinear}
 }
