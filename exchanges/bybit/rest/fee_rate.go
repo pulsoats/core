@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/pulsoats/core/errorsx"
-	"github.com/pulsoats/core/exchanges/bybit/specs"
 	"github.com/pulsoats/core/market"
 )
 
@@ -32,8 +31,8 @@ type feeRateResp struct {
 		List   []fees `json:"list"`
 		Cursor string `json:"nextPageCursor"`
 	} `json:"result"`
-	RetExtInfo any    `json:"retExtInfo"`
-	Time       int64  `json:"time"`
+	RetExtInfo any   `json:"retExtInfo"`
+	Time       int64 `json:"time"`
 }
 
 const bybitFeeRatePath = "/v5/account/fee-rate"
@@ -62,18 +61,10 @@ func (r *Client) FeeRate(ctx context.Context, category string, symbol, baseCoin 
 	q := url.Values{}
 	q.Set("category", category)
 
-	switch category {
-	case specs.CategoryOption:
-		if baseCoin == "" {
-			return market.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate option requires base coin: %w", errorsx.ErrRequired)
-		}
-		q.Set("baseCoin", strings.ToUpper(baseCoin))
-	default:
-		if symbol == "" {
-			return market.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate requires symbol for category=%s: %w", category, errorsx.ErrRequired)
-		}
-		q.Set("symbol", strings.ToUpper(symbol))
+	if symbol == "" {
+		return market.TakerMakerFees{}, fmt.Errorf("bybit rest: fee-rate requires symbol for category=%s: %w", category, errorsx.ErrRequired)
 	}
+	q.Set("symbol", strings.ToUpper(symbol))
 
 	u.RawQuery = q.Encode()
 

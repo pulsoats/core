@@ -19,9 +19,6 @@ import (
 // 0 means no limit.
 // Options: 2000 topics per connection (Bybit docs).
 func categoryMaxTopics(cat string) int {
-	if cat == specs.CategoryOption {
-		return 2000
-	}
 	return 0
 }
 
