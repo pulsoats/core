@@ -11,16 +11,12 @@ import (
 )
 
 // EncodeSignal преобразует detect.Signal в CSV-строку
-func EncodeSignal(sig detect.Signal, spec market.Spec, interval market.Interval) []string {
+func EncodeSignal(sig detect.Signal) []string {
 	profitability := float64(sig.ExpectedReturnPPM) / 1_000_000
 
 	return []string{
 		sig.ID.String(),
 		sig.RunID.String(),
-		spec.Exchange,
-		spec.Category,
-		spec.Symbol,
-		interval.String(),
 		sig.DetectorCode,
 		sig.DetectorVersion,
 		sig.DetectorOptsLabel,
