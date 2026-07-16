@@ -428,17 +428,17 @@ case StreamMsgKindUnknown:
 ```
 mu.Lock()
 
-firstConnect = !r.connected
-если firstConnect: r.connected = true
+firstConnect = !registry.connected
+если firstConnect: registry.connected = true
 
-r.state = ConnStateConnected
+registry.state = ConnStateConnected
 
 // Фиксируем топики из in-flight pending (Subscribe вызван параллельно
 // до OnReconnect — они уже улетели в сокет этого соединения)
 inPending = {topic for req in pending for topic in req.topics}
 
 // Сбрасываем pending: ACK'и со старого соединения уже не придут
-r.pending = make(map[string]*pendingReq)
+registry.pending = make(map[string]*pendingReq)
 
 // Собираем топики для реподписки (исключая те, что уже в новых pending)
 restartTopics = [p.topic for p in pipes if p.topic not in inPending]
@@ -468,7 +468,7 @@ mu.Unlock()
     mu.Unlock()
 ```
 
-Защита от утечки памяти: если сервер не прислал ACK (упал, потерял сообщение), `pending` разрастается бесконечно. Cleaner периодически evict'ит старые записи. Вызывать `r.StartCleaner(ctx)` нужно после создания роутера — адаптер биржи сам решает, нужен ли он.
+Защита от утечки памяти: если сервер не прислал ACK (упал, потерял сообщение), `pending` разрастается бесконечно. Cleaner периодически evict'ит старые записи. Вызывать `registry.StartCleaner(ctx)` нужно после создания роутера — адаптер биржи сам решает, нужен ли он.
 
 ### Интерфейсы (ports.go)
 
@@ -581,15 +581,15 @@ type conn struct {
      router.NewRouter(Config{Cmds:cmds, MsgBuilder, MsgDecoder, Logger})
      websocket.NewStream(StreamConfig{
          URL, Cmds: cmds,
-         Dispatch:    r.Dispatch,      // Router обрабатывает входящее
-         OnReconnect: r.OnReconnect,   // Router реподписывается при реконнекте
+         Dispatch:    registry.Dispatch,      // Router обрабатывает входящее
+         OnReconnect: registry.OnReconnect,   // Router реподписывается при реконнекте
          BackoffStart: 1s, BackoffMax: 30s,
          PingEvery: 20s,
          PingMsg: {"op":"ping"},       // Bybit требует JSON heartbeat
          Logger,
      })
      s.Connect(ctx)   // запускает session-loop горутину, не блокирует
-     mu.Lock() → conns[streamID] = {s, r}
+     mu.Lock() → conns[streamID] = {s, registry}
 
    ЕСТЬ → mu.RUnlock(), reuse
 
@@ -632,7 +632,7 @@ s.Connect(ctx) запускает:
         ├── reader-pump горутина [живёт одну сессию, до закрытия conn]
         └── ping-ticker горутина [живёт одну сессию, до pingStop или connCtx.Done]
 
-r.StartCleaner(ctx) запускает (опционально):
+registry.StartCleaner(ctx) запускает (опционально):
 └── cleaner горутина [живёт пока ctx не отменён]
 
 StreamCandles запускает:
