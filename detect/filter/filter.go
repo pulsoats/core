@@ -18,7 +18,7 @@ type Filter struct {
 	Period int
 }
 
-// FilterFromConfig создает Filter по конфигу. registry не может быть nil.
+// FilterFromConfig создает Filter по конфигу. Реестр не может быть nil.
 func FilterFromConfig(registry *Registry, cfg Config) (Filter, error) {
 	if registry == nil {
 		return Filter{}, fmt.Errorf("filterFunc filter from config: registry is nil: %w", errorsx.ErrInternal)

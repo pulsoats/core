@@ -14,7 +14,12 @@ type Detector interface {
 	WindowSize() int
 	BarsForBuy() int
 	BarsForSell() int
-	Detect(window []market.Candle, fees market.TakerMakerFees) (detect.Signal, bool, error)
+	Detect(window []market.Candle, fees market.TakerMakerFees) Result
+}
+
+type Result struct {
+	Signal       *detect.Signal
+	RejectReason string
 }
 
 // Config описывает конфигурацию детектора. Opts сериализуются в JSON и десериализуются в Registry.
