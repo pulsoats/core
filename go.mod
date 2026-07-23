@@ -5,7 +5,9 @@ go 1.26.2
 require (
 	github.com/coder/websocket v1.8.15
 	github.com/google/uuid v1.6.0
+	github.com/pulsoats/contracts v1.13.1
 	github.com/stretchr/testify v1.11.1
+	google.golang.org/protobuf v1.36.11
 )
 
 require (

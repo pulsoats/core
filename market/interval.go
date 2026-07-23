@@ -2,7 +2,10 @@ package market
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
+
+	"github.com/pulsoats/core/errorsx"
 )
 
 type Interval time.Duration
@@ -63,37 +66,37 @@ func (i Interval) MarshalJSON() ([]byte, error) {
 	return json.Marshal(i.String())
 }
 
-func ParseInterval(s string) (Interval, bool) {
+func ParseInterval(s string) (Interval, error) {
 	switch s {
 	case "1m":
-		return Interval1m, true
+		return Interval1m, nil
 	case "3m":
-		return Interval3m, true
+		return Interval3m, nil
 	case "5m":
-		return Interval5m, true
+		return Interval5m, nil
 	case "15m":
-		return Interval15m, true
+		return Interval15m, nil
 	case "30m":
-		return Interval30m, true
+		return Interval30m, nil
 	case "1h":
-		return Interval1h, true
+		return Interval1h, nil
 	case "2h":
-		return Interval2h, true
+		return Interval2h, nil
 	case "4h":
-		return Interval4h, true
+		return Interval4h, nil
 	case "6h":
-		return Interval6h, true
+		return Interval6h, nil
 	case "12h":
-		return Interval12h, true
+		return Interval12h, nil
 	case "1d":
-		return Interval1d, true
+		return Interval1d, nil
 	case "3d":
-		return Interval3d, true
+		return Interval3d, nil
 	case "1w":
-		return Interval1w, true
+		return Interval1w, nil
 	case "1M":
-		return Interval1M, true
+		return Interval1M, nil
 	default:
-		return 0, false
+		return 0, fmt.Errorf("parse interval: %w", errorsx.ErrNotFound)
 	}
 }

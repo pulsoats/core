@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"sort"
 	"sync"
 
 	"github.com/pulsoats/core/errorsx"
@@ -83,34 +82,37 @@ func Register[Opts any](r *Registry, meta Meta, factory func(label string, opts 
 	return nil
 }
 
-func (r *Registry) New(code, version, label string, opts any) (Detector, error) {
-	key := registryKey(code, version)
+// NewFromConfig создает детектор из Config.
+func (r *Registry) NewFromConfig(cfg Config) (Detector, error) {
+	const op = "detectors registry: new from config"
+
+	key := registryKey(cfg.Code, cfg.Version)
 
 	r.mu.RLock()
 	e, ok := r.entries[key]
 	r.mu.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("detectors registry: detector=%s version=%s: %w", code, version, errorsx.ErrNotFound)
+		return nil, fmt.Errorf("%s: detector=%s version=%s: %w", op, cfg.Code, cfg.Version, errorsx.ErrNotFound)
 	}
-	result, err := e.factory(label, opts)
+
+	ptr := reflect.New(e.optType).Interface()
+	if err := json.Unmarshal(cfg.Opts, ptr); err != nil {
+		return nil, errors.Join(
+			fmt.Errorf("%s: detector=%s version=%s unmarshal opts failed: %w", op, cfg.Code, cfg.Version, errorsx.ErrInvalidArgument),
+			err,
+		)
+	}
+	opts := reflect.ValueOf(ptr).Elem().Interface()
+
+	result, err := e.factory(cfg.OptsLabel, opts)
 	if err != nil {
 		return nil, errors.Join(
-			fmt.Errorf("detectors registry: detector=%s version=%s factory failed: %w", code, version, errorsx.ErrInternal),
+			fmt.Errorf("%s: detector=%s version=%s factory failed: %w", op, cfg.Code, cfg.Version, err),
 			err,
 		)
 	}
 	return result, nil
-}
-
-func (r *Registry) Meta(code, version string) (Meta, bool) {
-	key := registryKey(code, version)
-
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	e, ok := r.entries[key]
-	return e.meta, ok
 }
 
 func (r *Registry) ListMetas() []Meta {
@@ -126,6 +128,7 @@ func (r *Registry) ListMetas() []Meta {
 
 func (r *Registry) ListVersions(code string) []Meta {
 	r.mu.RLock()
+	defer r.mu.RUnlock()
 
 	out := make([]Meta, 0)
 	for _, e := range r.entries {
@@ -133,77 +136,5 @@ func (r *Registry) ListVersions(code string) []Meta {
 			out = append(out, e.meta)
 		}
 	}
-	r.mu.RUnlock()
-
-	sort.Slice(out, func(i, j int) bool {
-		return out[i].Code < out[j].Code
-	})
 	return out
-}
-
-func (r *Registry) NewOptsPtr(code, version string) (any, error) {
-	key := registryKey(code, version)
-
-	r.mu.RLock()
-	e, ok := r.entries[key]
-	r.mu.RUnlock()
-
-	if !ok {
-		return nil, fmt.Errorf("detectors registry: detector=%s version=%s: %w", code, version, errorsx.ErrNotFound)
-	}
-	return reflect.New(e.optType).Interface(), nil
-}
-
-func (r *Registry) MarshalOpts(code, version string, opts any) ([]byte, error) {
-	key := registryKey(code, version)
-
-	r.mu.RLock()
-	e, ok := r.entries[key]
-	r.mu.RUnlock()
-
-	if !ok {
-		return nil, fmt.Errorf("detectors registry: detector=%s version=%s: %w", code, version, errorsx.ErrNotFound)
-	}
-	if opts == nil {
-		return nil, fmt.Errorf("detectors registry: detector=%s version=%s got=<nil> want=%s: %w",
-			code, version, e.optType.String(), errorsx.ErrInvalidArgument)
-	}
-
-	gotType := reflect.TypeOf(opts)
-	var (
-		data []byte
-		err  error
-	)
-	switch {
-	case gotType == e.optType:
-		data, err = json.Marshal(opts)
-	case gotType.Kind() == reflect.Pointer && gotType.Elem() == e.optType:
-		data, err = json.Marshal(reflect.ValueOf(opts).Elem().Interface())
-	default:
-		return nil, fmt.Errorf("detectors registry: detector=%s version=%s got=%s want=%s: %w",
-			code, version, gotType.String(), e.optType.String(), errorsx.ErrInvalidArgument)
-	}
-	if err != nil {
-		return nil, errors.Join(
-			fmt.Errorf("detectors registry: detector=%s version=%s marshal opts failed: %w", code, version, errorsx.ErrInvalidArgument),
-			err,
-		)
-	}
-	return data, nil
-}
-
-func (r *Registry) UnmarshalOpts(code, version string, data []byte) (any, error) {
-	ptr, err := r.NewOptsPtr(code, version)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(data, ptr); err != nil {
-		return nil, errors.Join(
-			fmt.Errorf("detectors registry: detector=%s version=%s unmarshal opts failed: %w", code, version, errorsx.ErrInvalidArgument),
-			err,
-		)
-	}
-
-	return reflect.ValueOf(ptr).Elem().Interface(), nil
 }
