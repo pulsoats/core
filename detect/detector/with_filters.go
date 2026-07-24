@@ -1,7 +1,6 @@
 package detector
 
 import (
-	"github.com/pulsoats/core/detect"
 	"github.com/pulsoats/core/detect/filter"
 	"github.com/pulsoats/core/market"
 )
@@ -30,27 +29,22 @@ func Wrap(det Detector, filters []filter.Filter) Detector {
 func (d *WithFilters) WindowSize() int { return d.Detector.WindowSize() + d.extraLookBack }
 
 // Detect прогоняет каждый фильтр через хвост lookback, предшествующий окну детектора.
-func (d *WithFilters) Detect(window []market.Candle, fees market.TakerMakerFees) (detect.Signal, bool, error) {
-	var zero detect.Signal
-
+func (d *WithFilters) Detect(window []market.Candle, fees market.TakerMakerFees) Result {
 	innerSize := d.Detector.WindowSize()
 	innerWindow := window[len(window)-innerSize:]
 	lookBack := window[:d.extraLookBack]
 
-	sig, found, err := d.Detector.Detect(innerWindow, fees)
-	if err != nil || !found {
-		return sig, found, err
+	detectRes := d.Detector.Detect(innerWindow, fees)
+	if detectRes.Signal == nil {
+		return detectRes
 	}
 
 	for _, f := range d.filters {
 		tail := lookBack[d.extraLookBack-f.Period:]
-		ok, err := f.Func(innerWindow, tail)
-		if err != nil {
-			return zero, false, err
-		}
-		if !ok {
-			return zero, false, nil
+		if filterRes := f.Func(innerWindow, tail); !filterRes.Passed {
+			detectRes.RejectReason = filterRes.RejectReason
+			return detectRes
 		}
 	}
-	return sig, true, nil
+	return detectRes
 }
