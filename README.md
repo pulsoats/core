@@ -47,11 +47,11 @@ clients, err := reg.CreateAllPublic(logger)
 
 ### Detect
 
-| Пакет | Содержимое |
-| --- |---|
-| `detect` | `Signal` — результат работы детектора (цены, время свечи, метаданные). `Metadata map[string]string`. |
-| `detect/detector` | `Detector` — интерфейс детектора на свечах (`Detect`, `WindowSize`, `BarsForBuy`, `BarsForSell`). `Config` — сериализуемая конфигурация (`Code`, `Version`, `OptsLabel`, `Opts json.RawMessage`). `Meta` — метаданные (`Code`, `Version`, `Description`, `OptsSchema`). `Registry` — реестр детекторов. `Register[Opts]` — регистрация типизированной фабрики. `Wrap` — оборачивает `Detector` фильтрами. |
-| `detect/filter` | `Func` — логический фильтр `func(detectorWindow, lookBackWindow []market.Candle) (bool, error)`. `Filter` — исполняемый фильтр (`Func` + `Period`). `Config` — конфигурация (`Code`, `Period`). `Registry` — реестр фильтров. `Register` — регистрация. `FilterFromConfig` — создание фильтра из конфига. |
+| Пакет | Содержимое                                                                                                                                                                                                                                                                                                                                                                                                |
+| --- |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `detect` | `Signal` — результат работы детектора (цены, время свечи, метаданные). `Metadata map[string]string`.                                                                                                                                                                                                                                                                                                      |
+| `detect/detector` | `Detector` — интерфейс детектора на свечах (`Detect`, `WindowSize`, `BarsForBuy`, `BarsForSell`). `Detect` возвращает `Result` (`Signal *detect.Signal`, `RejectReason string`) — `Signal == nil` означает, что сигнал не найден или отсеян, причина — в `RejectReason`. `Config` — сериализуемая конфигурация (`Code`, `Version`, `OptsLabel`, `Opts json.RawMessage`). `Meta` — метаданные (`Code`, `Version`, `Description`, `OptsSchema`). `Registry` — реестр детекторов. `Register[Opts]` — регистрация типизированной фабрики. `Wrap` — оборачивает `Detector` фильтрами. |
+| `detect/filter` | `Func` — логический фильтр `func(detectorWindow, lookBackWindow []market.Candle) Result`, где `Result` - результат выполнения фукнции фильтра (флаг `Passed` и `RejectReason`). `Filter` — исполняемый фильтр (`Func` + `Period`). `Config` — конфигурация (`Code`, `Period`). `Registry` — реестр фильтров. `Register` — регистрация. `FilterFromConfig` — создание фильтра из конфига.                      |
 
 #### Реестр детекторов
 
@@ -83,9 +83,9 @@ versions := registry.ListVersions("w")
 
 ```go
 // регистрация фильтра
-filter.Register(filterRegistry, filter.Meta{Code: "trend"}, func(window, lookBack []market.Candle) (bool, error) {
-    // window — свечи детектора, lookBack — Period свечей до окна
-    return true, nil
+filter.Register(filterRegistry, filter.Meta{Code: "trend"}, func (window, lookBack []market.Candle) filter.Result {
+// window — свечи детектора, lookBack — Period свечей до окна
+return filter.Result{Passed: true}
 })
 
 // создание фильтра из конфига
@@ -93,6 +93,7 @@ f, err := filter.FilterFromConfig(filterRegistry, filter.Config{Code: "trend", P
 
 // детектор, обёрнутый фильтрами — WindowSize увеличивается на max(Period)
 det = detector.Wrap(det, []filter.Filter{f})
+
 ```
 
 ### Run
@@ -171,7 +172,6 @@ grpc.Dial(addr, grpc.WithTransportCredentials(credentials.NewTLS(p.ClientConfig(
 | --- | --- |
 | `errorsx/` | Корни ошибок (`ErrNotFound`, `ErrInvalidArgument`, `ErrRequired`, `ErrAlreadyExists`, `ErrUnauthorized`, `ErrInternal` и др.). |
 | `lib/csv` | CSV-энкодеры для свечей и сигналов плюс буферизированные писатели (заголовки, размер буфера, автофлаш). |
-| `lib/logx` | Вспомогательные функции для `slog`: `ParseLevel`. Внешние приложения передают `*slog.Logger` в конструкторы. |
 | `lib/format`, `lib/parse`, `lib/units` | Хелперы для денег и дельт (`Cents`, `PPM`, `StrToCents`). |
 
 ### Тесты

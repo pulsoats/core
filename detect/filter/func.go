@@ -9,8 +9,14 @@ import (
 	"github.com/pulsoats/core/market"
 )
 
-// Func проверяет найденный сигнал по lookback-данным. Возвращает false, если сигнал нужно отсеять.
-type Func func(detectorWindow, lookBackWindow []market.Candle) (bool, error)
+// Func проверяет найденный сигнал по lookback-данным.
+type Func func(detectorWindow, lookBackWindow []market.Candle) Result
+
+// Result - результат работы функции фильтра (Func). Если сигнал не прошел фильтр - необходимо вернуть False и причину (например not passed <name> filter)
+type Result struct {
+	Passed       bool
+	RejectReason string
+}
 
 type Meta struct {
 	Code        string
