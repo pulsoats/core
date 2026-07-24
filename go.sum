@@ -19,6 +19,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pulsoats/contracts v1.13.1 h1:RUWovScihx7vqdfXzYNRwjlyXoOGTDLo3SeOJpokjgI=
 github.com/pulsoats/contracts v1.13.1/go.mod h1:8Q71i8oIm117Sq4SIJ6CzAy1li3L+wX7i+fz4NsoeUY=
+github.com/pulsoats/contracts v1.14.0 h1:J+RpCoBZ/YaKePCLQq4THzvfe6TWEX+/+knHmeB9JWA=
+github.com/pulsoats/contracts v1.14.0/go.mod h1:CzV4sRD8z+00r2uYvFIeBdkosVoSYUNKGkXMK/u6EMM=
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.15.0 h1:D0RCU5rMAp+SpgkiNdrjfJ+LX4J1M32V2NeCY7EJ6hc=
 github.com/rogpeppe/go-internal v1.15.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=

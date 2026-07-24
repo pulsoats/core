@@ -15,8 +15,8 @@ type Base struct {
 	Status          Status
 	Market          market.Spec
 	Interval        market.Interval
-	Detector        detector.Config
-	Filters         []filter.Config
+	DetectorConfig  detector.Config
+	FiltersConfigs  []filter.Config
 	SignalsCount    int64
 	FirstCandleTime time.Time
 	LastCandleTime  time.Time
